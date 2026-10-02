@@ -6,6 +6,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-10-02
+
 ### Added
 
 - Project website at https://emcee5000.github.io/satori/, deployed automatically from `site/`.
@@ -47,6 +49,7 @@ The first public release.
 - Ghostty-inspired terminal theme and a glowing ensō icon.
 - Local JSON storage with tolerant decoding and protection against overwriting unreadable files.
 
-[Unreleased]: https://github.com/emcee5000/satori/compare/v1.0.1...HEAD
+[Unreleased]: https://github.com/emcee5000/satori/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/emcee5000/satori/compare/v1.0.1...v1.1.0
 [1.0.1]: https://github.com/emcee5000/satori/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/emcee5000/satori/releases/tag/v1.0.0
