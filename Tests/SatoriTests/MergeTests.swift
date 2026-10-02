@@ -101,7 +101,7 @@ final class MergeTests: XCTestCase {
 
     func testSetupLinkCarriesRepoAndToken() throws {
         let link = try XCTUnwrap(SyncService.setupLink(repo: "me/satori-data", token: "github_pat_abc+/="))
-        XCTAssertTrue(link.absoluteString.hasPrefix("https://emcee5000.github.io/satori/app/#connect="))
+        XCTAssertTrue(link.absoluteString.hasPrefix("https://satorigtd.app/app/#connect="))
         var code = String(link.absoluteString.split(separator: "=", maxSplits: 1)[1])
         XCTAssertFalse(code.contains("+") || code.contains("/") || code.contains("="), "URL-safe base64")
         code = code.replacingOccurrences(of: "-", with: "+").replacingOccurrences(of: "_", with: "/")

@@ -7,7 +7,7 @@
 <p align="center">
   A small, keyboard-first <b>Getting Things Done</b> app for macOS, with a terminal soul.
   <br>
-  <a href="https://emcee5000.github.io/satori/"><b>emcee5000.github.io/satori</b></a>
+  <a href="https://satorigtd.app/"><b>satorigtd.app</b></a>
 </p>
 
 <p align="center">
@@ -200,10 +200,14 @@ Plain <kbd>⌘</kbd> + letter **moves the selected to-do**; <kbd>⌥⌘</kbd> + 
 
 ## Phone & sync
 
-Satori for iPhone is a lightweight web app: **[emcee5000.github.io/satori/app](https://emcee5000.github.io/satori/app/)**.
+Satori for iPhone is a lightweight web app: **[satorigtd.app/app](https://satorigtd.app/app/)**.
 Open it in Safari and tap **Share → Add to Home Screen**. It runs full-screen, works offline, and keeps your
 to-dos on the phone. It covers capturing, your lists, projects and editing; inbox processing and the weekly review
 stay on the Mac.
+
+> **Added it before October 2026?** The phone app moved from `emcee5000.github.io/satori/app` to
+> `satorigtd.app/app`. Delete the old Home Screen icon, add the app again from the new address, then paste the setup
+> link from Satori for Mac (Settings → Sync → Connect iPhone). Your to-dos come back on the first sync.
 
 ### Set up sync (about 3 minutes)
 

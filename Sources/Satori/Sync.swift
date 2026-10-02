@@ -150,7 +150,7 @@ final class SyncService {
 
     var isConfigured: Bool { allowed && enabled && repo.contains("/") && !token.isEmpty }
 
-    nonisolated static let webAppURL = "https://emcee5000.github.io/satori/app/"
+    nonisolated static let webAppURL = "https://satorigtd.app/app/"
 
     /// Opens the phone app with this repo and token filled in. They travel in the
     /// URL fragment, which browsers never send to the server.

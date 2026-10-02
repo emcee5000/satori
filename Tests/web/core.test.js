@@ -86,7 +86,7 @@ test("reads setup links made by the Mac", () => {
   // Same encoding as SyncService.setupLink: sorted-key JSON, URL-safe base64 without padding.
   const json = JSON.stringify({ repo: "me/satori-data", token: "github_pat_abc+/=" });
   const code = Buffer.from(json).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-  assert.deepEqual(S.parseSetupLink(`https://emcee5000.github.io/satori/app/#connect=${code}`),
+  assert.deepEqual(S.parseSetupLink(`https://satorigtd.app/app/#connect=${code}`),
     { repo: "me/satori-data", token: "github_pat_abc+/=" });
   assert.equal(S.parseSetupLink("https://example.com"), null);
   assert.equal(S.parseSetupLink("#connect=not-base64-json"), null);

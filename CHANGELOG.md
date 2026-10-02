@@ -6,6 +6,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [1.3.2] - 2026-10-02
+
+### Changed
+
+- Satori has its own address: **https://satorigtd.app**. Old `emcee5000.github.io/satori` links redirect there.
+- Settings → Sync → Connect iPhone now links to https://satorigtd.app/app/. If you added the phone app to your
+  Home Screen from the old address, add it again from the new one and paste the setup link from your Mac.
+
 ## [1.3.1] - 2026-10-02
 
 ### Fixed
@@ -86,7 +94,8 @@ The first public release.
 - Ghostty-inspired terminal theme and a glowing ensō icon.
 - Local JSON storage with tolerant decoding and protection against overwriting unreadable files.
 
-[Unreleased]: https://github.com/emcee5000/satori/compare/v1.3.1...HEAD
+[Unreleased]: https://github.com/emcee5000/satori/compare/v1.3.2...HEAD
+[1.3.2]: https://github.com/emcee5000/satori/compare/v1.3.1...v1.3.2
 [1.3.1]: https://github.com/emcee5000/satori/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/emcee5000/satori/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/emcee5000/satori/compare/v1.1.0...v1.2.0
