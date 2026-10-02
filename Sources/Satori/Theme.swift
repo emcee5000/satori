@@ -74,6 +74,10 @@ struct StatusLine: View {
                 }
             }
             Spacer(minLength: 8)
+            if store.sync.isConfigured {
+                SyncStatusText(status: store.sync.status)
+                    .help("GitHub sync — Settings (⌘,)")
+            }
             Text("? for shortcuts").foregroundStyle(Theme.faint)
         }
         .scaledFont(.caption)

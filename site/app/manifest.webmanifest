@@ -1,0 +1,14 @@
+{
+  "name": "Satori",
+  "short_name": "Satori",
+  "description": "A lightweight Getting Things Done app that syncs with Satori for Mac.",
+  "start_url": "./#inbox",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#282c34",
+  "theme_color": "#21252b",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

@@ -17,12 +17,14 @@ Sources/Satori/
   ProcessInboxView.swift  The guided clarify flow
   ReviewAndCapture.swift  Weekly Review, menu-bar capture, Settings
   ShortcutsView.swift     The keyboard cheat sheet
+  Sync.swift              GitHub sync: merging, Keychain token, polling
   Theme.swift             Colours and the status line
   TextScale.swift         App-wide text zoom (scaledFont)
 scripts/
   build-app.sh            Builds and optionally installs Satori.app
   make-icon.swift         Draws the app icon
 site/                     The project website (GitHub Pages, deployed on push)
+site/app/                 The phone web app (core.js = data model and merge, app.js = UI and sync)
 docs/                     Documentation and the README icon
 ```
 
@@ -77,6 +79,24 @@ Menu commands use `@FocusedValue(\.selectedTaskID)`, so ⌘ + letter acts on the
   its font explicitly.
 - All colours come from `Theme`.
 
+## Sync
+
+Sync is optional and uses a private GitHub repo as the meeting point. `SyncService` (Mac) and `app.js` (web)
+follow the same loop: fetch `data.json` through the GitHub contents API, merge, and write it back only if
+the merged copy differs. A write includes the file's `sha`, so if another device wrote first, GitHub rejects it
+and the loop fetches and merges again.
+
+Merging (`AppData.merge` on the Mac, `Satori.merge` in `core.js`):
+
+- **Items:** each task or project carries `updatedAt`; the more recent copy wins. Local mutations only bump
+  `updatedAt` when something actually changed.
+- **Deletions:** permanent deletes are recorded in `deleted` (ID → date) and win over any copy. Records older than
+  90 days are dropped.
+- **Settings** (contexts, review state): the Mac does a three-way merge against the copy from the last successful
+  sync; the web app doesn't edit settings and always takes the synced copy.
+
+Dates are written as ISO 8601 without fractional seconds; both sides also accept fractional seconds.
+
 ## Data file format
 
 `~/Library/Application Support/Satori/data.json` is pretty-printed JSON with ISO 8601 dates:
@@ -93,8 +113,9 @@ Menu commands use `@FocusedValue(\.selectedTaskID)`, so ⌘ + letter acts on the
   "tasks": [
     { "id": "UUID", "title": "Email Sam the draft", "notes": "", "bucket": "next",
       "projectID": "UUID", "context": "@work", "waitingOn": "", "deferUntil": null,
-      "due": null, "starred": false, "createdAt": "…", "completedAt": null, "trashedAt": null }
-  ]
+      "due": null, "starred": false, "createdAt": "…", "updatedAt": "…", "completedAt": null, "trashedAt": null }
+  ],
+  "deleted": { "UUID": "2026-10-02T16:00:00Z" }
 }
 ```
 

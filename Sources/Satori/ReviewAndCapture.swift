@@ -251,6 +251,8 @@ struct SettingsView: View {
                     .scaledFont(.caption).foregroundStyle(Theme.dim)
             }
 
+            SyncSettings(sync: store.sync)
+
             Section("Data") {
                 LabeledContent("Stored at") {
                     Text(store.fileURL.path).scaledFont(.caption).textSelection(.enabled)
@@ -262,7 +264,7 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .frame(width: 440 * scale, height: 460 * scale)
+        .frame(width: 480 * scale, height: 640 * scale)
     }
 
     private func addContext() {
@@ -271,5 +273,52 @@ struct SettingsView: View {
         if !c.hasPrefix("@") { c = "@" + c }
         if !store.data.contexts.contains(c) { store.data.contexts.append(c) }
         newContext = ""
+    }
+}
+
+// MARK: - Sync settings
+
+struct SyncSettings: View {
+    @Bindable var sync: SyncService
+
+    var body: some View {
+        Section {
+            Toggle("Sync with GitHub", isOn: $sync.enabled)
+            TextField("Repository", text: $sync.repo, prompt: Text("you/satori-data"))
+            SecureField("Token", text: $sync.token, prompt: Text("github_pat_…"))
+            HStack {
+                SyncStatusText(status: sync.status)
+                Spacer()
+                Button("Sync Now") { Task { await sync.syncNow() } }
+                    .disabled(!sync.isConfigured)
+            }
+        } header: {
+            Text("Sync")
+        } footer: {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Keeps this Mac and the Satori web app on your phone in step, through a private GitHub repo you own.")
+                Text("Create a fine-grained token with **Contents: read and write** access to only that repo.")
+                Link("Create a token on GitHub ↗", destination: URL(string: "https://github.com/settings/personal-access-tokens/new")!)
+            }
+            .scaledFont(.caption)
+            .foregroundStyle(Theme.dim)
+        }
+    }
+}
+
+struct SyncStatusText: View {
+    let status: SyncService.Status
+
+    var body: some View {
+        switch status {
+        case .off:
+            Text("off").foregroundStyle(Theme.faint)
+        case .syncing:
+            Text("syncing…").foregroundStyle(Theme.dim)
+        case .synced(let date):
+            Text("synced \(date.formatted(date: .omitted, time: .shortened))").foregroundStyle(Theme.green)
+        case .failed(let message):
+            Text("⚠ " + message).foregroundStyle(Theme.red).lineLimit(2)
+        }
     }
 }

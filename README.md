@@ -29,7 +29,8 @@ It looks like a terminal (think [Ghostty](https://ghostty.org)): monospaced type
 for capturing, and a status line that always shows which keys work right now.
 
 - **Native & tiny:** pure SwiftUI, no dependencies, about a 4 MB app.
-- **Private:** no accounts, no network, no tracking. Your tasks live in one readable JSON file.
+- **Private:** no accounts, no tracking. Your tasks live in one readable JSON file, synced only if you choose.
+- **On your phone too:** a tiny web app for iPhone that syncs through a private GitHub repo you own.
 - **Keyboard-first:** every action has a shortcut, and the app teaches them as you go.
 - **Opinionated about GTD:** inbox processing, contexts, projects that need a next action, and a weekly review.
 
@@ -40,6 +41,7 @@ for capturing, and a status line that always shows which keys work right now.
 - [How Satori maps to GTD](#how-satori-maps-to-gtd)
 - [Using Satori](#using-satori)
 - [Keyboard reference](#keyboard-reference)
+- [Phone & sync](#phone--sync)
 - [Your data](#your-data)
 - [FAQ](#faq)
 - [Contributing](#contributing)
@@ -165,6 +167,32 @@ Plain <kbd>⌘</kbd> + letter **moves the selected to-do**; <kbd>⌥⌘</kbd> + 
 | ⌘+ (or ⌘=) / ⌘− / ⌘0 | Bigger text / smaller text / actual size |
 | ⇧⌘W | Close the window (⌘W is Waiting For) |
 
+## Phone & sync
+
+Satori for iPhone is a lightweight web app: **[emcee5000.github.io/satori/app](https://emcee5000.github.io/satori/app/)**.
+Open it in Safari and tap **Share → Add to Home Screen**. It runs full-screen, works offline, and keeps your
+to-dos on the phone. It covers capturing, your lists, projects and editing; inbox processing and the weekly review
+stay on the Mac.
+
+### Set up sync (about 3 minutes)
+
+Satori syncs through a **private GitHub repository you own**. There's no Satori server or account.
+
+1. **Create a private repo** on GitHub, for example `you/satori-data`. Leave it empty.
+2. **Create a token** at [github.com/settings/personal-access-tokens/new](https://github.com/settings/personal-access-tokens/new):
+   - *Repository access:* **Only select repositories** → your `satori-data` repo
+   - *Permissions → Repository permissions → Contents:* **Read and write**
+3. **On your Mac:** Satori → **Settings (⌘,) → Sync**. Turn it on and enter the repo (`you/satori-data`) and the token.
+4. **On your phone:** **More → Sync & Settings**. Enter the same repo and token, then tap **Save & sync**.
+
+Both apps sync when they open, every minute while open, and a few seconds after a change.
+
+**How merging works:** each to-do and project keeps whichever copy was edited most recently, and anything deleted
+on either device stays deleted. Every sync is a commit to your repo, so you can always look back or restore.
+
+**Security:** the token can only access that one repo. On the Mac it's stored in the Keychain; on the phone it's
+kept in the web app's local storage, so use a token scoped as above.
+
 ## Your data
 
 Everything is stored in one file:
@@ -178,7 +206,7 @@ Everything is stored in one file:
 - If the file ever can't be read, Satori copies it aside (`data-unreadable-<timestamp>.json`) instead of overwriting it.
 - **Settings (⌘,)** shows the file's location and lets you edit your contexts.
 
-Satori makes no network connections.
+Satori makes no network connections unless you turn on sync, and then only to the GitHub repo you choose.
 
 ## FAQ
 
@@ -187,7 +215,7 @@ Releases aren't notarized with a paid Apple Developer account. See [Install](#in
 or build it yourself.
 
 **Is there an iPhone app or sync?**
-No. Satori is deliberately a small, single-Mac app. The data file is simple enough to sync yourself (see [Your data](#your-data)).
+Yes. There's a lightweight web app for iPhone, and both sync through a private GitHub repo. See [Phone & sync](#phone--sync).
 
 **Can I use light mode?**
 Not yet. Satori uses a dark, terminal-style theme. Contributions are welcome.

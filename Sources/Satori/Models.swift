@@ -46,6 +46,8 @@ struct TaskItem: Identifiable, Codable, Hashable {
     var due: Date?
     var starred = false
     var createdAt = Date()
+    /// Last edit time; sync keeps whichever copy was edited most recently.
+    var updatedAt = Date()
     var completedAt: Date?
     var trashedAt: Date?
 
@@ -63,18 +65,21 @@ struct Project: Identifiable, Codable, Hashable {
     var outcome = ""
     var isSomeday = false
     var createdAt = Date()
+    var updatedAt = Date()
     var completedAt: Date?
     var trashedAt: Date?
 
     var isActive: Bool { completedAt == nil && trashedAt == nil }
 }
 
-struct AppData: Codable {
+struct AppData: Codable, Equatable {
     var tasks: [TaskItem] = []
     var projects: [Project] = []
     var contexts: [String] = ["@home", "@work", "@computer", "@phone", "@errands", "@anywhere"]
     var lastReview: Date?
     var reviewChecks: [String] = []
+    /// IDs of permanently deleted tasks and projects, so sync doesn't bring them back.
+    var deleted: [String: Date] = [:]
 
     static var welcome: AppData {
         var d = AppData()
@@ -102,6 +107,7 @@ extension TaskItem {
         due = try c.decodeIfPresent(Date.self, forKey: .due)
         starred = try c.decodeIfPresent(Bool.self, forKey: .starred) ?? false
         createdAt = try c.decodeIfPresent(Date.self, forKey: .createdAt) ?? Date()
+        updatedAt = try c.decodeIfPresent(Date.self, forKey: .updatedAt) ?? createdAt
         completedAt = try c.decodeIfPresent(Date.self, forKey: .completedAt)
         trashedAt = try c.decodeIfPresent(Date.self, forKey: .trashedAt)
     }
@@ -115,6 +121,7 @@ extension Project {
         outcome = try c.decodeIfPresent(String.self, forKey: .outcome) ?? ""
         isSomeday = try c.decodeIfPresent(Bool.self, forKey: .isSomeday) ?? false
         createdAt = try c.decodeIfPresent(Date.self, forKey: .createdAt) ?? Date()
+        updatedAt = try c.decodeIfPresent(Date.self, forKey: .updatedAt) ?? createdAt
         completedAt = try c.decodeIfPresent(Date.self, forKey: .completedAt)
         trashedAt = try c.decodeIfPresent(Date.self, forKey: .trashedAt)
     }
@@ -129,6 +136,7 @@ extension AppData {
         contexts = try c.decodeIfPresent([String].self, forKey: .contexts) ?? defaults.contexts
         lastReview = try c.decodeIfPresent(Date.self, forKey: .lastReview)
         reviewChecks = try c.decodeIfPresent([String].self, forKey: .reviewChecks) ?? []
+        deleted = try c.decodeIfPresent([String: Date].self, forKey: .deleted) ?? [:]
     }
 }
 

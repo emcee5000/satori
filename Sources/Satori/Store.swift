@@ -19,19 +19,30 @@ final class Store {
     /// Asks a pane to take keyboard focus; the pane clears it once handled.
     var focusRequest: Pane?
 
+    let sync = SyncService()
     @ObservationIgnored let fileURL: URL
     @ObservationIgnored private var saveWork: DispatchWorkItem?
 
-    private static let encoder: JSONEncoder = {
+    static let encoder: JSONEncoder = {
         let e = JSONEncoder()
         e.dateEncodingStrategy = .iso8601
         e.outputFormatting = [.prettyPrinted, .sortedKeys]
         return e
     }()
 
-    private static let decoder: JSONDecoder = {
+    static let decoder: JSONDecoder = {
         let d = JSONDecoder()
-        d.dateDecodingStrategy = .iso8601
+        // Accept dates with or without fractional seconds (the web app may write either).
+        d.dateDecodingStrategy = .custom { decoder in
+            let text = try decoder.singleValueContainer().decode(String.self)
+            let plain = ISO8601DateFormatter()
+            let fractional = ISO8601DateFormatter()
+            fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            guard let date = plain.date(from: text) ?? fractional.date(from: text) else {
+                throw DecodingError.dataCorrupted(.init(codingPath: decoder.codingPath, debugDescription: "Bad date: \(text)"))
+            }
+            return date
+        }
         return d
     }()
 
@@ -63,6 +74,9 @@ final class Store {
             data = AppData.welcome
         }
 
+        sync.store = self
+        sync.restart()
+
         NotificationCenter.default.addObserver(
             forName: NSApplication.willTerminateNotification, object: nil, queue: .main
         ) { [weak self] _ in
@@ -89,6 +103,12 @@ final class Store {
         } catch {
             NSLog("Satori: failed to save: \(error)")
         }
+        sync.schedule()
+    }
+
+    /// Replaces local data with a merged copy from sync.
+    func applySynced(_ merged: AppData) {
+        data = merged
     }
 
     // MARK: Queries
@@ -149,7 +169,11 @@ final class Store {
 
     func update(_ id: UUID, _ change: (inout TaskItem) -> Void) {
         guard let i = data.tasks.firstIndex(where: { $0.id == id }) else { return }
-        change(&data.tasks[i])
+        var task = data.tasks[i]
+        change(&task)
+        guard task != data.tasks[i] else { return }
+        task.updatedAt = Date()
+        data.tasks[i] = task
     }
 
     /// Pulls a known "@context" word out of a title, e.g. "Call Bob @phone".
@@ -241,10 +265,14 @@ final class Store {
     }
 
     func deletePermanently(_ id: UUID) {
+        data.deleted[id.uuidString] = Date()
         data.tasks.removeAll { $0.id == id }
     }
 
     func emptyTrash() {
+        let now = Date()
+        for t in data.tasks where t.trashedAt != nil { data.deleted[t.id.uuidString] = now }
+        for p in data.projects where p.trashedAt != nil { data.deleted[p.id.uuidString] = now }
         data.tasks.removeAll { $0.trashedAt != nil }
         data.projects.removeAll { $0.trashedAt != nil }
     }
@@ -270,7 +298,11 @@ final class Store {
 
     func updateProject(_ id: UUID, _ change: (inout Project) -> Void) {
         guard let i = data.projects.firstIndex(where: { $0.id == id }) else { return }
-        change(&data.projects[i])
+        var project = data.projects[i]
+        change(&project)
+        guard project != data.projects[i] else { return }
+        project.updatedAt = Date()
+        data.projects[i] = project
     }
 
     /// Tasks in a someday or finished project shouldn't clutter Next Actions.
@@ -304,6 +336,7 @@ final class Store {
         let now = Date()
         for i in data.tasks.indices where data.tasks[i].projectID == id && data.tasks[i].isActive {
             data.tasks[i].completedAt = now
+            data.tasks[i].updatedAt = now
         }
         updateProject(id) { $0.completedAt = now }
     }
@@ -312,6 +345,7 @@ final class Store {
         let now = Date()
         for i in data.tasks.indices where data.tasks[i].projectID == id && data.tasks[i].isActive {
             data.tasks[i].trashedAt = now
+            data.tasks[i].updatedAt = now
         }
         updateProject(id) { $0.trashedAt = now }
         if selection == .project(id) { selection = .projects }

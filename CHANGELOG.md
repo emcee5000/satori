@@ -11,6 +11,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Project website at https://emcee5000.github.io/satori/, deployed automatically from `site/`.
 - Screenshot in the README and on the website.
 - `SATORI_DATA_DIR` environment variable to run Satori against a separate data folder.
+- **Satori for iPhone**: a lightweight, installable web app at https://emcee5000.github.io/satori/app/ with capture,
+  lists, projects and editing. Works offline.
+- **Sync** between the Mac and the phone through a private GitHub repo you own (Settings → Sync). The newest edit
+  wins per item, deletions stick, and every sync is a commit.
 
 ### Fixed
 

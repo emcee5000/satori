@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Satori</title>
+  <meta name="description" content="Satori for your phone: a lightweight Getting Things Done app that syncs with Satori for Mac.">
+  <meta name="theme-color" content="#21252b">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Satori">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/png" href="icon-192.png">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <style>
+    :root {
+      --bg: #282c34; --bar: #21252b; --panel: #2c313a; --raised: #323844; --border: #3e4451;
+      --text: #dcdfe4; --dim: #8b929e; --faint: #5c6370;
+      --blue: #61afef; --cyan: #56b6c2; --green: #98c379; --yellow: #e5c07b;
+      --orange: #d19a66; --red: #e06c75; --magenta: #c678dd; --sand: #b8a584;
+      --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+      --top: env(safe-area-inset-top); --bottom: env(safe-area-inset-bottom);
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.45 var(--mono); }
+    body { min-height: 100dvh; overscroll-behavior-y: none; }
+    button, input, select, textarea { font: inherit; color: inherit; }
+    button { background: none; border: 0; padding: 0; cursor: pointer; }
+
+    /* Header + capture */
+    header {
+      position: sticky; top: 0; z-index: 5; background: rgba(40, 44, 52, 0.94);
+      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      padding: calc(var(--top) + 14px) 16px 10px;
+    }
+    .titlebar { display: flex; align-items: baseline; gap: 10px; }
+    .titlebar h1 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.01em; }
+    .titlebar .chev { font-weight: 700; }
+    .titlebar .count { color: var(--faint); font-size: 15px; }
+    .titlebar .back { color: var(--dim); font-size: 15px; margin-right: 2px; }
+    .sync { margin-left: auto; font-size: 12px; color: var(--faint); }
+    .sync.ok { color: var(--green); } .sync.err { color: var(--red); }
+    .hint { color: var(--faint); font-size: 12.5px; margin: 2px 0 10px; }
+    .capture {
+      display: flex; gap: 10px; align-items: center; background: var(--panel);
+      border: 1px solid var(--border); border-radius: 9px; padding: 10px 12px;
+    }
+    .capture:focus-within { border-color: rgba(97, 175, 239, 0.7); }
+    .capture span { color: var(--faint); font-weight: 700; }
+    .capture:focus-within span { color: var(--blue); }
+    .capture input { flex: 1; min-width: 0; background: none; border: 0; outline: none; font-size: 16px; }
+    .capture input::placeholder { color: var(--faint); }
+
+    /* Lists */
+    main { padding: 4px 8px calc(var(--bottom) + 84px); }
+    .section { color: var(--dim); font-size: 12px; padding: 16px 10px 4px; }
+    .row { display: flex; gap: 12px; align-items: flex-start; padding: 11px 10px; border-radius: 9px; }
+    .row:active { background: var(--panel); }
+    .box { color: var(--dim); padding: 0 2px; white-space: pre; }
+    .row.done .box { color: var(--green); }
+    .row .t { flex: 1; min-width: 0; }
+    .row .title { overflow-wrap: anywhere; }
+    .row.done .title { color: var(--faint); text-decoration: line-through; }
+    .meta { font-size: 12px; color: var(--faint); margin-top: 2px; }
+    .meta .ctx { color: var(--cyan); } .meta .proj { color: var(--magenta); } .meta .wait { color: var(--orange); }
+    .meta .start { color: var(--red); opacity: 0.85; } .meta .over { color: var(--red); }
+    .star { color: var(--yellow); }
+    .empty { text-align: center; color: var(--faint); padding: 56px 20px; font-size: 14px; }
+    .empty b { display: block; color: var(--dim); font-size: 17px; margin-bottom: 6px; }
+    .nav-row { display: flex; align-items: center; gap: 12px; padding: 14px 10px; border-radius: 9px; }
+    .nav-row:active { background: var(--panel); }
+    .nav-row .dot { width: 9px; height: 9px; border-radius: 2px; flex: none; }
+    .nav-row .n { margin-left: auto; color: var(--faint); font-size: 13px; }
+    .nav-row .warn { color: var(--orange); font-size: 12px; margin-left: auto; }
+
+    /* Tab bar */
+    nav.tabs {
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 6; display: flex;
+      background: rgba(33, 37, 43, 0.96); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      border-top: 1px solid var(--border); padding: 6px 4px calc(var(--bottom) + 6px);
+    }
+    nav.tabs button { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 4px 0; color: var(--faint); font-size: 10.5px; }
+    nav.tabs button .g { font-size: 18px; line-height: 1.2; }
+    nav.tabs button.on { color: var(--text); }
+    nav.tabs button.on .g { color: var(--blue); }
+    nav.tabs button { position: relative; }
+    nav.tabs .badge { position: absolute; top: 0; left: calc(50% + 9px); font-size: 10px; color: var(--blue); }
+
+    /* Editor sheet */
+    .scrim { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.45); z-index: 9; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
+    .scrim.open { opacity: 1; pointer-events: auto; }
+    .sheet {
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 10; max-height: 88dvh; overflow-y: auto;
+      background: var(--bar); border-top: 1px solid var(--border); border-radius: 16px 16px 0 0;
+      padding: 10px 16px calc(var(--bottom) + 18px); transform: translateY(105%); transition: transform 0.25s ease;
+    }
+    .sheet.open { transform: none; }
+    .grab { width: 38px; height: 5px; border-radius: 3px; background: var(--border); margin: 0 auto 12px; }
+    .sheet textarea, .sheet input[type=text], .sheet input[type=password], .sheet input[type=date], .sheet select {
+      width: 100%; background: var(--panel); border: 1px solid var(--border); border-radius: 9px; padding: 10px 12px; outline: none;
+    }
+    .sheet textarea:focus, .sheet input:focus, .sheet select:focus { border-color: rgba(97, 175, 239, 0.7); }
+    .sheet textarea.title { font-size: 18px; font-weight: 600; resize: none; }
+    .sheet textarea.notes { min-height: 80px; resize: vertical; color: var(--dim); }
+    .label { color: var(--faint); font-size: 12px; margin: 16px 2px 7px; }
+    .chips { display: flex; flex-wrap: wrap; gap: 7px; }
+    .chip { padding: 6px 11px; border-radius: 99px; border: 1px solid var(--border); font-size: 13.5px; color: var(--dim); }
+    .chip.on { border-color: var(--blue); color: var(--text); background: rgba(97, 175, 239, 0.16); }
+    .dates { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .dates input { color-scheme: dark; }
+    .actions { display: flex; gap: 10px; margin-top: 22px; }
+    .btn { flex: 1; padding: 12px; border-radius: 10px; background: var(--panel); border: 1px solid var(--border); text-align: center; font-weight: 600; }
+    .btn.primary { background: var(--blue); border-color: var(--blue); color: #10141a; }
+    .btn.danger { color: var(--red); }
+
+    /* Settings */
+    .card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 14px; margin: 10px 6px; font-size: 14px; color: var(--dim); }
+    .card h3 { margin: 0 0 6px; font-size: 15px; color: var(--text); }
+    .card input { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 9px 11px; margin: 4px 0 10px; outline: none; font-size: 15px; }
+    .card .btn { display: block; width: 100%; margin-top: 6px; }
+    .card a { color: var(--blue); }
+    .card p { margin: 6px 0; }
+    .card ol { padding-left: 20px; margin: 6px 0; }
+  </style>
+</head>
+<body>
+  <header id="header"></header>
+  <main id="main"></main>
+  <nav class="tabs" id="tabs"></nav>
+  <div class="scrim" id="scrim"></div>
+  <div class="sheet" id="sheet" role="dialog" aria-modal="true"></div>
+
+  <script src="core.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
