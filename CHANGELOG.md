@@ -6,6 +6,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [1.3.1] - 2026-10-02
+
+### Fixed
+
+- Weekly Review couldn't be clicked in the sidebar while its "due" label was showing.
+
 ## [1.3.0] - 2026-10-02
 
 ### Added
@@ -80,7 +86,8 @@ The first public release.
 - Ghostty-inspired terminal theme and a glowing ensō icon.
 - Local JSON storage with tolerant decoding and protection against overwriting unreadable files.
 
-[Unreleased]: https://github.com/emcee5000/satori/compare/v1.3.0...HEAD
+[Unreleased]: https://github.com/emcee5000/satori/compare/v1.3.1...HEAD
+[1.3.1]: https://github.com/emcee5000/satori/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/emcee5000/satori/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/emcee5000/satori/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/emcee5000/satori/compare/v1.0.1...v1.1.0

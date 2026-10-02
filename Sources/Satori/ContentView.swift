@@ -92,8 +92,7 @@ struct Sidebar: View {
                 }
             }
             Section("Reflect") {
-                row(.review)
-                    .badge(store.reviewIsDue ? Text("due").foregroundStyle(Theme.yellow) : nil)
+                row(.review, note: store.reviewIsDue ? "due" : nil)
                 row(.logbook)
                 row(.trash)
             }
@@ -141,13 +140,14 @@ struct Sidebar: View {
         }
     }
 
-    private func row(_ d: Destination, badge: Int = 0) -> some View {
+    /// A sidebar row. The tag must stay the last modifier, or the row can't be selected.
+    private func row(_ d: Destination, badge: Int = 0, note: String? = nil) -> some View {
         Label {
             Text(d.title).scaledFont(.body)
         } icon: {
             Image(systemName: d.icon).foregroundStyle(d.color.opacity(0.85))
         }
-        .badge(badge)
+        .badge(note.map { Text($0).foregroundStyle(Theme.yellow) } ?? (badge > 0 ? Text("\(badge)") : nil))
         .scaledFont(.body)
         .help(d.goKey.map { "\(d.title) — \($0)" } ?? d.title)
         .tag(d)
