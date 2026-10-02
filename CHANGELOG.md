@@ -6,6 +6,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Added
+
+- Project website at https://emcee5000.github.io/satori/, deployed automatically from `site/`.
+
 ## [1.0.1] - 2026-10-02
 
 ### Changed

@@ -22,6 +22,7 @@ Sources/Satori/
 scripts/
   build-app.sh            Builds and optionally installs Satori.app
   make-icon.swift         Draws the app icon
+site/                     The project website (GitHub Pages, deployed on push)
 docs/                     Documentation and the README icon
 ```
 

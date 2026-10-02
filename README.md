@@ -6,6 +6,8 @@
 
 <p align="center">
   A small, keyboard-first <b>Getting Things Done</b> app for macOS, with a terminal soul.
+  <br>
+  <a href="https://emcee5000.github.io/satori/"><b>emcee5000.github.io/satori</b></a>
 </p>
 
 <p align="center">
