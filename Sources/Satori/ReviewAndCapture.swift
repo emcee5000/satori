@@ -1,0 +1,275 @@
+import AppKit
+import SwiftUI
+
+// MARK: - Weekly Review
+
+private struct ReviewStep: Identifiable {
+    let id: String
+    let title: String
+    let detail: String
+    var destination: Destination?
+}
+
+private let reviewPhases: [(String, [ReviewStep])] = [
+    ("Get Clear", [
+        ReviewStep(id: "collect", title: "Collect loose papers and materials",
+                   detail: "Gather notes, receipts and scraps into your inbox."),
+        ReviewStep(id: "inbox", title: "Get Inbox to zero",
+                   detail: "Clarify every item and put it where it belongs.", destination: .inbox),
+        ReviewStep(id: "mind", title: "Empty your head",
+                   detail: "Capture any new projects, actions, waiting-fors and someday/maybes."),
+    ]),
+    ("Get Current", [
+        ReviewStep(id: "next", title: "Review Next Actions",
+                   detail: "Mark off completed actions. Add reminders for further steps.", destination: .next),
+        ReviewStep(id: "pastcal", title: "Review previous calendar",
+                   detail: "Look back two weeks for remaining or new action items."),
+        ReviewStep(id: "upcal", title: "Review upcoming calendar",
+                   detail: "Look ahead and capture actions for upcoming events."),
+        ReviewStep(id: "waiting", title: "Review Waiting For",
+                   detail: "Record follow-ups. Check off what's been received.", destination: .waiting),
+        ReviewStep(id: "projects", title: "Review Projects",
+                   detail: "Make sure every project has at least one current next action.", destination: .projects),
+        ReviewStep(id: "scheduled", title: "Review Scheduled",
+                   detail: "Is anything coming up that needs preparation now?", destination: .scheduled),
+        ReviewStep(id: "checklists", title: "Review any relevant checklists",
+                   detail: "Areas of focus, goals, routines — anything you haven't attended to?"),
+    ]),
+    ("Get Creative", [
+        ReviewStep(id: "someday", title: "Review Someday/Maybe",
+                   detail: "Activate anything that's now relevant. Delete what isn't.", destination: .someday),
+        ReviewStep(id: "creative", title: "Be creative and courageous",
+                   detail: "Any new, wonderful, harebrained ideas? Capture them."),
+    ]),
+]
+
+struct WeeklyReviewView: View {
+    @Environment(Store.self) private var store
+    @State private var capture = ""
+    @State private var selection: String?
+    @FocusState private var focus: Pane?
+
+    private var totalSteps: Int { reviewPhases.reduce(0) { $0 + $1.1.count } }
+    private var allSteps: [ReviewStep] { reviewPhases.flatMap(\.1) }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            ListHeader(destination: .review)
+
+            HStack {
+                if let last = store.data.lastReview {
+                    Text("Last review: \(last.formatted(.relative(presentation: .named)))")
+                        .foregroundStyle(store.reviewIsDue ? Theme.yellow : Theme.dim)
+                } else {
+                    Text("# no weekly review yet").foregroundStyle(Theme.yellow)
+                }
+                Spacer()
+                Text("\(store.data.reviewChecks.count) of \(totalSteps)").foregroundStyle(Theme.dim)
+            }
+            .scaledFont(.callout)
+
+            HStack(spacing: 8) {
+                Text("❯").scaledFont(.body, weight: .bold).foregroundStyle(focus == .newTask ? Theme.accent : Theme.faint)
+                TextField("Capture anything that comes to mind…", text: $capture)
+                    .textFieldStyle(.plain)
+                    .focused($focus, equals: .newTask)
+                    .onSubmit {
+                        let t = capture.trimmingCharacters(in: .whitespaces)
+                        if !t.isEmpty { store.addTask(t, to: .inbox) }
+                        capture = ""
+                    }
+                    .onExitCommand { focus = .list }
+                    .onKeyPress(.downArrow) { focus = .list; return .handled }
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(RoundedRectangle(cornerRadius: 6).fill(Theme.panel))
+            .overlay(RoundedRectangle(cornerRadius: 6)
+                .strokeBorder(focus == .newTask ? Theme.accent.opacity(0.7) : Theme.border, lineWidth: 1))
+            .help("Capture to Inbox — ↩ adds · ↓ back to the steps")
+
+            List(selection: $selection) {
+                ForEach(reviewPhases, id: \.0) { phase, steps in
+                    Section {
+                        ForEach(steps) { stepRow($0).scaledFont(.body).listRowSeparator(.hidden).tag($0.id) }
+                    } header: {
+                        Text("── " + phase.lowercased()).foregroundStyle(Theme.dim).scaledFont(.caption)
+                    }
+                }
+            }
+            .listStyle(.inset)
+            .scrollContentBackground(.hidden)
+            .focused($focus, equals: .list)
+            .onChange(of: focus) { if let focus { store.activePane = focus } }
+            .onKeyPress(characters: ["?"]) { _ in
+                store.showShortcuts = true
+                return .handled
+            }
+            .contextMenu(forSelectionType: String.self) { _ in
+                EmptyView()
+            } primaryAction: { ids in
+                if let id = ids.first, let step = allSteps.first(where: { $0.id == id }) { open(step) }
+            }
+            .onKeyPress(.space) {
+                if let selection { toggle(selection) }
+                return .handled
+            }
+            .onKeyPress(.leftArrow) { store.focusRequest = .sidebar; return .handled }
+
+            HStack {
+                Spacer()
+                Button("Finish Weekly Review") {
+                    store.data.lastReview = Date()
+                    store.data.reviewChecks = []
+                }
+                .keyboardShortcut(.return, modifiers: .command)
+                .help("⌘↩")
+            }
+        }
+        .padding(20)
+        .onChange(of: store.focusRequest) { consumeFocusRequest() }
+        .onAppear { consumeFocusRequest() }
+    }
+
+    private func consumeFocusRequest() {
+        guard let request = store.focusRequest, request == .list || request == .newTask else { return }
+        store.focusRequest = nil
+        DispatchQueue.main.async {
+            focus = request
+            if selection == nil { selection = allSteps.first?.id }
+        }
+    }
+
+    private func toggle(_ id: String) {
+        if store.data.reviewChecks.contains(id) { store.data.reviewChecks.removeAll { $0 == id } }
+        else { store.data.reviewChecks.append(id) }
+    }
+
+    private func open(_ step: ReviewStep) {
+        guard let d = step.destination else { toggle(step.id); return }
+        if d == .inbox { store.showProcessInbox = true } else { store.go(d) }
+    }
+
+    private func stepRow(_ step: ReviewStep) -> some View {
+        let checked = store.data.reviewChecks.contains(step.id)
+        return HStack(alignment: .top, spacing: 10) {
+            Button { toggle(step.id) } label: {
+                Text(checked ? "[x]" : "[ ]").scaledFont(.body).foregroundStyle(checked ? Theme.green : Theme.dim)
+            }
+            .buttonStyle(.plain)
+            .help("Space")
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(step.title).scaledFont(.body).strikethrough(checked, color: Theme.faint).foregroundStyle(checked ? Theme.faint : Theme.text)
+                Text("# " + step.detail).scaledFont(.caption).foregroundStyle(Theme.faint)
+            }
+            Spacer()
+            if let d = step.destination {
+                let stalled = d == .projects ? store.activeProjects.filter(store.isStalled).count : 0
+                if stalled > 0 {
+                    Text("\(stalled) stalled").scaledFont(.caption).foregroundStyle(Theme.orange)
+                } else if d != .projects {
+                    Text("\(store.count(d))").scaledFont(.caption).foregroundStyle(Theme.dim)
+                }
+                Button(d == .inbox ? "Process" : "Open") { open(step) }
+                    .controlSize(.small)
+                    .help("↩")
+            }
+        }
+        .padding(.vertical, 4)
+    }
+}
+
+// MARK: - Menu bar quick capture
+
+struct QuickCaptureView: View {
+    @Environment(Store.self) private var store
+    @Environment(\.openWindow) private var openWindow
+    @State private var text = ""
+    @State private var captured = 0
+    @FocusState private var focused: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Capture to Inbox").scaledFont(.headline)
+            TextField("What's on your mind?", text: $text)
+                .textFieldStyle(.roundedBorder)
+                .focused($focused)
+                .onSubmit {
+                    let t = text.trimmingCharacters(in: .whitespaces)
+                    guard !t.isEmpty else { return }
+                    store.addTask(t, to: .inbox)
+                    text = ""
+                    captured += 1
+                }
+            HStack {
+                Text(captured > 0 ? "✓ Captured \(captured)" : "\(store.count(.inbox)) in Inbox")
+                    .scaledFont(.caption).foregroundStyle(Theme.dim)
+                Spacer()
+                Button("Open Satori") {
+                    openWindow(id: "main")
+                    NSApp.activate()
+                }
+                .controlSize(.small)
+            }
+        }
+        .padding(14)
+        .frame(width: 300)
+        .onAppear { focused = true; captured = 0 }
+    }
+}
+
+// MARK: - Settings
+
+struct SettingsView: View {
+    @Environment(Store.self) private var store
+    @AppStorage(TextScale.key) private var scale = 1.0
+    @State private var newContext = ""
+
+    var body: some View {
+        Form {
+            Section {
+                ForEach(store.data.contexts, id: \.self) { c in
+                    HStack {
+                        Text(c)
+                        Spacer()
+                        Button { store.data.contexts.removeAll { $0 == c } } label: {
+                            Image(systemName: "minus.circle.fill").foregroundStyle(Theme.dim)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                HStack {
+                    TextField("New context", text: $newContext, prompt: Text("@context"))
+                        .onSubmit(addContext)
+                    Button("Add", action: addContext)
+                }
+            } header: {
+                Text("Contexts")
+            } footer: {
+                Text("Contexts are the tools, places or people needed to do an action.")
+                    .scaledFont(.caption).foregroundStyle(Theme.dim)
+            }
+
+            Section("Data") {
+                LabeledContent("Stored at") {
+                    Text(store.fileURL.path).scaledFont(.caption).textSelection(.enabled)
+                }
+                Button("Show in Finder") {
+                    store.saveNow()
+                    NSWorkspace.shared.activateFileViewerSelecting([store.fileURL])
+                }
+            }
+        }
+        .formStyle(.grouped)
+        .frame(width: 440 * scale, height: 460 * scale)
+    }
+
+    private func addContext() {
+        var c = newContext.trimmingCharacters(in: .whitespaces)
+        guard !c.isEmpty else { return }
+        if !c.hasPrefix("@") { c = "@" + c }
+        if !store.data.contexts.contains(c) { store.data.contexts.append(c) }
+        newContext = ""
+    }
+}
