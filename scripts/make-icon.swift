@@ -1,6 +1,6 @@
 // Renders the app icon into an .iconset directory: swift make-icon.swift <out.iconset>
 // An ensō (the Zen circle of enlightenment) drawn in glowing terminal phosphor on a
-// dark screen, with faint scanlines and a shell prompt waiting inside the circle.
+// dark screen, with a block cursor waiting at its centre.
 import AppKit
 
 let out = URL(fileURLWithPath: CommandLine.arguments[1])
@@ -57,8 +57,8 @@ func render(_ px: Int) -> Data {
 
     // Ensō in phosphor: thin bristle strokes along a wobbly circle, swelling then
     // fraying into dry-brush streaks, coloured cyan → blue along the stroke.
-    let radius = screen.width * 0.31
-    let maxWidth = screen.width * 0.095
+    let radius = screen.width * 0.3
+    let maxWidth = screen.width * 0.075
     let startAngle = CGFloat.pi * 0.58
     let sweep = CGFloat.pi * 1.83
     let bristles = 44
@@ -103,36 +103,13 @@ func render(_ px: Int) -> Data {
         ctx.restoreGState()
     }
 
-    // Shell prompt (a bold chevron) and block cursor inside the circle.
-    let h = screen.width * 0.15
-    let chevW = h * 0.55, cursorW = h * 0.55, gap = h * 0.32
-    let left = center.x - (chevW + gap + cursorW) / 2
-    let chevron = NSBezierPath()
-    chevron.move(to: CGPoint(x: left, y: center.y + h / 2))
-    chevron.line(to: CGPoint(x: left + chevW, y: center.y))
-    chevron.line(to: CGPoint(x: left, y: center.y - h / 2))
-    chevron.lineWidth = h * 0.2
-    chevron.lineCapStyle = .round
-    chevron.lineJoinStyle = .round
+    // Block cursor at the centre of the circle.
+    let h = screen.width * 0.2
     ctx.saveGState()
-    ctx.setShadow(offset: .zero, blur: s * 0.025, color: rgb(0x98C379, 0.9).cgColor)
-    rgb(0xA8D88A).setStroke()
-    chevron.stroke()
-    ctx.setShadow(offset: .zero, blur: s * 0.025, color: rgb(0xDCDFE4, 0.6).cgColor)
-    rgb(0xE6E9EE, 0.92).setFill()
-    NSBezierPath(rect: CGRect(x: left + chevW + gap, y: center.y - h * 0.6, width: cursorW, height: h * 1.2)).fill()
+    ctx.setShadow(offset: .zero, blur: s * 0.025, color: rgb(0xDCDFE4, 0.7).cgColor)
+    rgb(0xE6E9EE, 0.95).setFill()
+    NSBezierPath(rect: CGRect(x: center.x - h * 0.28, y: center.y - h / 2, width: h * 0.56, height: h)).fill()
     ctx.restoreGState()
-
-    // CRT scanlines (only where there are enough pixels to see them).
-    if px >= 128 {
-        let spacing = max(2, s / 170)
-        rgb(0x000000, 0.16).setFill()
-        var y = screen.minY
-        while y < screen.maxY {
-            NSBezierPath(rect: CGRect(x: screen.minX, y: y, width: screen.width, height: spacing * 0.45)).fill()
-            y += spacing
-        }
-    }
 
     // Glass highlight across the top of the screen.
     NSGradient(colors: [NSColor.white.withAlphaComponent(0.07), NSColor.white.withAlphaComponent(0)])!

@@ -6,6 +6,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Changed
+
+- Simpler app icon: a glowing ensō around a single block cursor.
+
 ## [1.0.0] - 2026-10-02
 
 The first public release.

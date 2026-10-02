@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/icon.png" width="128" alt="Satori icon: a glowing ensō around a shell prompt on a dark terminal screen">
+  <img src="docs/icon.png" width="128" alt="Satori icon: a glowing ensō around a block cursor on a dark terminal screen">
 </p>
 
 <h1 align="center">Satori</h1>
