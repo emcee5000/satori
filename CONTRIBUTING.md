@@ -72,17 +72,19 @@ The icon is drawn in code by `scripts/make-icon.swift`. Edit that file, run `./s
 
 ## Releasing (maintainers)
 
-1. Update the version in `scripts/build-app.sh` and add a section to `CHANGELOG.md`.
-2. Build and zip the app:
+Releases are automated.
+
+1. Make sure user-visible changes are listed under `## [Unreleased]` in `CHANGELOG.md`.
+2. Run the release script from a clean `main`:
    ```sh
-   ./scripts/build-app.sh
-   ditto -c -k --keepParent build/Satori.app build/Satori.zip
+   ./scripts/release.sh 1.2.3
    ```
-3. Tag and publish:
-   ```sh
-   git tag v1.x.y && git push origin v1.x.y
-   gh release create v1.x.y build/Satori.zip --title "Satori 1.x.y" --notes-file <notes>
-   ```
+   It moves the Unreleased notes under the new version, updates `VERSION`, commits, tags `v1.2.3` and pushes.
+3. The **Release** workflow builds `Satori.app` on GitHub and publishes the release with `Satori.zip` and the
+   changelog notes.
+
+Use patch versions (1.0.**x**) for fixes and polish, and minor versions (1.**x**.0) for new features.
+Dependabot keeps the GitHub Actions up to date with weekly pull requests.
 
 ## Code of Conduct
 

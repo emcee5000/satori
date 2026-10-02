@@ -1,0 +1,46 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check the tag matches VERSION
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          file="$(cat VERSION)"
+          if [ "$tag" != "$file" ]; then
+            echo "Tag v$tag doesn't match VERSION file ($file)" >&2
+            exit 1
+          fi
+
+      - name: Build Satori.app
+        run: |
+          ./scripts/build-app.sh
+          ditto -c -k --keepParent build/Satori.app build/Satori.zip
+
+      - name: Write release notes from CHANGELOG.md
+        run: |
+          version="$(cat VERSION)"
+          awk -v v="$version" '
+            $0 ~ "^## \\[" v "\\]" { on = 1; next }
+            on && /^## \[/ { exit }
+            on { print }
+          ' CHANGELOG.md > build/changes.md
+          cat build/changes.md .github/release-footer.md > build/notes.md
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" build/Satori.zip \
+            --title "Satori $(cat VERSION)" \
+            --notes-file build/notes.md

@@ -9,6 +9,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ### Changed
 
 - Simpler app icon: a glowing ensō around a single block cursor.
+- Releases are now built and published automatically when a version is tagged.
 
 ## [1.0.0] - 2026-10-02
 

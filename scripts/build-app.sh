@@ -4,7 +4,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 APP="build/Satori.app"
-VERSION="1.0.0"
+VERSION="$(cat VERSION)"
 
 echo "→ Compiling (release)…"
 swift build -c release
