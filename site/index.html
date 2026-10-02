@@ -116,7 +116,7 @@
      "name": "Which Macs does it run on?",
      "acceptedAnswer": {
       "@type": "Answer",
-      "text": "macOS 14 Sonoma or later. The download is for Apple silicon; Intel Macs can build from source."
+      "text": "Any Mac with macOS 14 Sonoma or later. The app runs natively on both Apple silicon and Intel."
      }
     },
     {
@@ -390,7 +390,7 @@
         View source
       </a>
     </div>
-    <p class="meta" id="meta">Apple silicon · macOS 14+ · MIT licensed</p>
+    <p class="meta" id="meta">Apple silicon &amp; Intel · macOS 14+ · MIT licensed</p>
 
     <figure class="shot">
       <img src="screenshot.png" width="1800" height="1098" fetchpriority="high" alt="Satori's Next Actions list grouped by context, with the sidebar of GTD lists and a to-do open in the details panel">
@@ -447,7 +447,7 @@
       <div class="card"><h3>Find anything</h3><p>Search every title and note, then jump straight to it.</p><div class="key"><kbd>⌘F</kbd></div></div>
       <div class="card"><h3>Undo</h3><p>Completed or trashed the wrong thing? Just undo it.</p><div class="key"><kbd>⌘Z</kbd></div></div>
       <div class="card"><h3>Private by design</h3><p>No account, no tracking, no servers. Your tasks are one JSON file you own.</p></div>
-      <div class="card"><h3>Free &amp; open source</h3><p>Native SwiftUI, about 4 MB, MIT licensed. Pull requests welcome.</p></div>
+      <div class="card"><h3>Free &amp; open source</h3><p>Native SwiftUI, under 10 MB, MIT licensed. Pull requests welcome.</p></div>
     </div>
   </section>
 
@@ -526,7 +526,7 @@
       <h3>Is my data private?</h3>
       <p>Yes. There are no accounts, no tracking and no Satori servers. Your tasks are one plain JSON file on your Mac.</p>
       <h3>Which Macs does it run on?</h3>
-      <p>macOS 14 Sonoma or later. The download is for Apple silicon; Intel Macs can build from source.</p>
+      <p>Any Mac with macOS 14 Sonoma or later. The app runs natively on both Apple silicon and Intel.</p>
       <h3>Is Satori affiliated with David Allen?</h3>
       <p>No. Getting Things Done and GTD are trademarks of the David Allen Company. Satori is an independent app inspired by the method.</p>
     </div>
@@ -539,10 +539,10 @@
       <div>
         <ol>
           <li><strong><a href="https://github.com/emcee5000/satori/releases/latest/download/Satori.zip">Download Satori.zip</a></strong>, unzip it, and drag <strong>Satori.app</strong> to Applications.</li>
-          <li>The first time, <strong>right-click Satori.app → Open</strong> and confirm. macOS asks once because the app isn't notarized.</li>
+          <li>Open it. The first time, macOS can't verify the developer: go to <strong>System Settings → Privacy &amp; Security</strong> and click <strong>Open Anyway</strong>. You only do this once.</li>
           <li>Press <kbd>Space</kbd> and start capturing.</li>
         </ol>
-        <p class="note">Needs macOS 14 or later on Apple silicon. Intel Macs can build from source.</p>
+        <p class="note">Needs macOS 14 or later. Runs natively on Apple silicon and Intel Macs.</p>
       </div>
       <div class="term">
         <div class="bar">build from source<button class="copy" id="copy" type="button">copy</button></div>
@@ -583,7 +583,7 @@
     .then(rel => {
       if (rel && rel.tag_name) {
         document.getElementById("meta").textContent =
-          rel.tag_name + " · Apple silicon · macOS 14+ · MIT licensed";
+          rel.tag_name + " · Apple silicon & Intel · macOS 14+ · MIT licensed";
       }
     })
     .catch(() => {});

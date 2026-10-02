@@ -6,6 +6,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [1.3.3] - 2026-10-02
+
+### Changed
+
+- **Intel Macs supported.** The download is now a universal app that runs natively on Apple silicon and Intel.
+
+### Fixed
+
+- First-launch instructions now describe macOS 15 and later, where right-click → Open no longer works: open
+  **System Settings → Privacy & Security** and click **Open Anyway**.
+
 ## [1.3.2] - 2026-10-02
 
 ### Changed
@@ -94,7 +105,8 @@ The first public release.
 - Ghostty-inspired terminal theme and a glowing ensō icon.
 - Local JSON storage with tolerant decoding and protection against overwriting unreadable files.
 
-[Unreleased]: https://github.com/emcee5000/satori/compare/v1.3.2...HEAD
+[Unreleased]: https://github.com/emcee5000/satori/compare/v1.3.3...HEAD
+[1.3.3]: https://github.com/emcee5000/satori/compare/v1.3.2...v1.3.3
 [1.3.2]: https://github.com/emcee5000/satori/compare/v1.3.1...v1.3.2
 [1.3.1]: https://github.com/emcee5000/satori/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/emcee5000/satori/compare/v1.2.0...v1.3.0

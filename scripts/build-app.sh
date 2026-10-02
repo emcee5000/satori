@@ -6,14 +6,22 @@ cd "$(dirname "$0")/.."
 APP="build/Satori.app"
 VERSION="$(cat VERSION)"
 
-echo "→ Compiling (release)…"
-swift build -c release
-BIN="$(swift build -c release --show-bin-path)/Satori"
+# A universal binary runs natively on both Apple silicon and Intel Macs. Each
+# architecture is built separately and merged, which needs only the Command Line Tools.
+BIN="build/Satori-universal"
+mkdir -p build
+SLICES=()
+for ARCH in arm64 x86_64; do
+    echo "→ Compiling for $ARCH (release)…"
+    swift build -c release --triple "$ARCH-apple-macosx14.0"
+    SLICES+=("$(swift build -c release --triple "$ARCH-apple-macosx14.0" --show-bin-path)/Satori")
+done
+lipo -create "${SLICES[@]}" -output "$BIN"
 
 echo "→ Assembling bundle…"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
-cp "$BIN" "$APP/Contents/MacOS/Satori"
+mv "$BIN" "$APP/Contents/MacOS/Satori"
 
 ICONSET="build/Satori.iconset"
 rm -rf "$ICONSET"

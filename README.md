@@ -28,7 +28,7 @@ Satori is a native task manager built around David Allen's *Getting Things Done*
 It looks like a terminal (think [Ghostty](https://ghostty.org)): monospaced type, `[ ]` checkboxes, a `❯` prompt
 for capturing, and a status line that always shows which keys work right now.
 
-- **Native & tiny:** pure SwiftUI, no dependencies, about a 4 MB app.
+- **Native & tiny:** pure SwiftUI, no dependencies, under 10 MB.
 - **Private:** no accounts, no tracking. Your tasks live in one readable JSON file, synced only if you choose.
 - **On your phone too:** a tiny web app for iPhone that syncs through a private GitHub repo you own.
 - **Keyboard-first:** every action has a shortcut, and the app teaches them as you go.
@@ -53,7 +53,9 @@ for capturing, and a status line that always shows which keys work right now.
 
 1. Grab `Satori.zip` from the [latest release](https://github.com/emcee5000/satori/releases/latest).
 2. Unzip it and drag **Satori.app** into **Applications**.
-3. The first time, **right-click Satori.app → Open**, then confirm.
+3. Open it. macOS says it can't verify the developer; click **Done**.
+4. Open **System Settings → Privacy & Security**, scroll down, click **Open Anyway** next to the Satori message, and
+   confirm. You only do this once. (On macOS 14, right-clicking Satori.app and choosing **Open** also works.)
 
 Satori is open source and signed locally rather than with a paid Apple Developer ID. That's why macOS asks
 before the first launch. If it still refuses to open, clear the download quarantine flag:
@@ -62,7 +64,7 @@ before the first launch. If it still refuses to open, clear the download quarant
 xattr -dr com.apple.quarantine /Applications/Satori.app
 ```
 
-Release builds are for Apple silicon Macs. On an Intel Mac, [build from source](#build-from-source).
+Release builds are universal: they run natively on both Apple silicon and Intel Macs.
 
 ### Requirements
 
