@@ -129,6 +129,65 @@ const Satori = (() => {
     return p;
   }
 
+  // ---- Repeating to-dos ----
+
+  const REPEAT_RULES = { daily: "every day", weekdays: "every weekday", weekly: "every week", monthly: "every month", yearly: "every year" };
+
+  /** The next occurrence after `date`, in whole local days (same as RepeatRule.next on the Mac). */
+  function nextDate(date, rule) {
+    const d = new Date(date);
+    const y = d.getFullYear(), m = d.getMonth(), day = d.getDate();
+    // Months and years keep the day of the month, or use the month's last day if it's shorter.
+    const sameDay = (yy, mm) => new Date(yy, mm, Math.min(day, new Date(yy, mm + 1, 0).getDate()));
+    switch (rule) {
+      case "daily": return new Date(y, m, day + 1);
+      case "weekdays": {
+        let n = new Date(y, m, day + 1);
+        while (n.getDay() === 0 || n.getDay() === 6) n = new Date(n.getFullYear(), n.getMonth(), n.getDate() + 1);
+        return n;
+      }
+      case "weekly": return new Date(y, m, day + 7);
+      case "monthly": return sameDay(y, m + 1);
+      case "yearly": return sameDay(y + 1, m);
+      default: throw new Error("Unknown repeat rule: " + rule);
+    }
+  }
+
+  /**
+   * The copy that replaces a repeating to-do once it's completed (same as
+   * TaskItem.nextOccurrence on the Mac). Its dates move forward together until
+   * they're past today; with no dates, it waits in Scheduled until the next occurrence.
+   */
+  function nextOccurrence(t, now = new Date()) {
+    const rule = t.repeatRule;
+    if (!REPEAT_RULES[rule]) return null;
+    const stamp = iso(now);
+    const copy = { ...t, id: uuid(), createdAt: stamp, updatedAt: stamp };
+    delete copy.completedAt;
+    delete copy.trashedAt;
+    if (!t.due && !t.deferUntil) {
+      copy.deferUntil = iso(nextDate(now, rule));
+      return copy;
+    }
+    const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+    let anchor = new Date(t.due || t.deferUntil), steps = 0;
+    do { anchor = nextDate(anchor, rule); steps++; } while (anchor < tomorrow);
+    const advance = s => { let d = new Date(s); for (let i = 0; i < steps; i++) d = nextDate(d, rule); return iso(d); };
+    if (t.due) copy.due = advance(t.due);
+    if (t.deferUntil) copy.deferUntil = advance(t.deferUntil);
+    return copy;
+  }
+
+  /** Completes a to-do, adding the next one if it repeats. */
+  function complete(data, id, now = new Date()) {
+    const t = data.tasks.find(x => x.id === id);
+    if (!t || t.completedAt) return null;
+    const next = nextOccurrence(t, now);
+    update(data, id, x => { x.completedAt = iso(now); });
+    if (next) data.tasks.push(next);
+    return next;
+  }
+
   function emptyTrash(data) {
     const now = iso();
     data.deleted = data.deleted || {};
@@ -166,6 +225,48 @@ const Satori = (() => {
     out.tasks = mergeItems(local.tasks || [], remote.tasks || [], deleted);
     out.projects = mergeItems(local.projects || [], remote.projects || [], deleted);
     return out;
+  }
+
+  /**
+   * What changed between two copies, for the sync commit message, e.g.
+   * "1 added, 2 completed" (same as AppData.summary on the Mac).
+   */
+  function summary(old, next) {
+    const before = new Map(((old && old.tasks) || []).map(t => [t.id, t]));
+    let added = 0, completed = 0, trashed = 0, edited = 0;
+    for (const t of next.tasks || []) {
+      const was = before.get(t.id);
+      if (!was) { added++; continue; }
+      if (canonical(t) === canonical(was)) continue;
+      if (!was.completedAt && t.completedAt) completed++;
+      else if (!was.trashedAt && t.trashedAt) trashed++;
+      else edited++;
+    }
+    const ids = new Set((next.tasks || []).map(t => t.id));
+    const deleted = [...before.keys()].filter(id => !ids.has(id)).length;
+    const oldProjects = new Map(((old && old.projects) || []).map(p => [p.id, canonical(p)]));
+    const projects = (next.projects || []).filter(p => oldProjects.get(p.id) !== canonical(p)).length;
+    const parts = [[added, "added"], [completed, "completed"], [edited, "edited"], [trashed, "trashed"], [deleted, "deleted"]]
+      .filter(([n]) => n > 0).map(([n, what]) => `${n} ${what}`);
+    if (projects) parts.push(`${projects} project${projects === 1 ? "" : "s"} changed`);
+    return parts.length ? parts.join(", ") : "settings changed";
+  }
+
+  /**
+   * Reads the repo and token from a setup link made by Satori for Mac
+   * (Settings → Sync → Connect iPhone), e.g. ".../app/#connect=eyJyZXBv…".
+   */
+  function parseSetupLink(text) {
+    const match = /connect=([A-Za-z0-9_-]+)/.exec(text || "");
+    if (!match) return null;
+    try {
+      const b64 = match[1].replace(/-/g, "+").replace(/_/g, "/");
+      const cfg = JSON.parse(fromBase64(b64 + "=".repeat((4 - b64.length % 4) % 4)));
+      if (typeof cfg.repo !== "string" || !cfg.repo.includes("/") || typeof cfg.token !== "string" || !cfg.token) return null;
+      return { repo: cfg.repo.trim(), token: cfg.token.trim() };
+    } catch {
+      return null;
+    }
   }
 
   /** Stable JSON (sorted keys, no nulls) for comparing two copies. */
@@ -208,6 +309,7 @@ const Satori = (() => {
     iso, time, startOfToday, startOfTomorrow, uuid, emptyData, isActive, isScheduled, isOverdue,
     project, list, activeProjects, nextActionCount, isStalled, parseContext, addTask, update,
     updateProject, send, addProject, emptyTrash, merge, canonical, pretty, toBase64, fromBase64, friendly,
+    REPEAT_RULES, nextDate, nextOccurrence, complete, summary, parseSetupLink,
   };
 })();
 

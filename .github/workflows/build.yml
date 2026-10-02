@@ -17,6 +17,16 @@ jobs:
       - name: Build
         run: swift build -c release
 
+      - name: Test the Mac app
+        run: swift test
+
+      - name: Test the web app
+        run: |
+          # Repeating to-dos count in local days, so check a few time zones.
+          for tz in UTC America/New_York Pacific/Auckland; do
+            TZ=$tz node --test Tests/web/*.test.js
+          done
+
       - name: Package Satori.app
         run: |
           ./scripts/build-app.sh

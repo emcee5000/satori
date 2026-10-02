@@ -33,6 +33,46 @@ enum Bucket: String, Codable, CaseIterable, Identifiable {
     }
 }
 
+/// How often a to-do comes back after it's completed.
+enum RepeatRule: String, Codable, CaseIterable, Identifiable {
+    case daily, weekdays, weekly, monthly, yearly
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .daily: "Every day"
+        case .weekdays: "Every weekday"
+        case .weekly: "Every week"
+        case .monthly: "Every month"
+        case .yearly: "Every year"
+        }
+    }
+
+    /// The next occurrence after `date`, counted in whole local days.
+    /// The web app's `nextDate` in core.js must give the same answers.
+    func next(after date: Date, calendar: Calendar = .current) -> Date {
+        let day = calendar.startOfDay(for: date)
+        switch self {
+        case .daily:
+            return calendar.date(byAdding: .day, value: 1, to: day)!
+        case .weekdays:
+            var d = calendar.date(byAdding: .day, value: 1, to: day)!
+            // Saturday and Sunday, in every locale, to match the web app.
+            while [1, 7].contains(calendar.component(.weekday, from: d)) {
+                d = calendar.date(byAdding: .day, value: 1, to: d)!
+            }
+            return d
+        case .weekly:
+            return calendar.date(byAdding: .day, value: 7, to: day)!
+        case .monthly:
+            return calendar.date(byAdding: .month, value: 1, to: day)!
+        case .yearly:
+            return calendar.date(byAdding: .year, value: 1, to: day)!
+        }
+    }
+}
+
 struct TaskItem: Identifiable, Codable, Hashable {
     var id = UUID()
     var title: String
@@ -45,6 +85,7 @@ struct TaskItem: Identifiable, Codable, Hashable {
     var deferUntil: Date?
     var due: Date?
     var starred = false
+    var repeatRule: RepeatRule?
     var createdAt = Date()
     /// Last edit time; sync keeps whichever copy was edited most recently.
     var updatedAt = Date()
@@ -56,6 +97,38 @@ struct TaskItem: Identifiable, Codable, Hashable {
     func isScheduled(_ now: Date = .now) -> Bool { (deferUntil ?? .distantPast) > now }
     var isOverdue: Bool { due.map { $0 < .startOfToday } ?? false }
     var isDueByToday: Bool { due.map { $0 < .startOfTomorrow } ?? false }
+
+    /// The copy that replaces a repeating to-do once it's completed. Its dates move
+    /// forward together until they're past today; with no dates, it waits in Scheduled
+    /// until the next occurrence.
+    func nextOccurrence(now: Date = .now, calendar: Calendar = .current) -> TaskItem? {
+        guard let rule = repeatRule else { return nil }
+        let tomorrow = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: now))!
+        var copy = self
+        copy.id = UUID()
+        copy.createdAt = now
+        copy.updatedAt = now
+        copy.completedAt = nil
+        copy.trashedAt = nil
+        if due == nil && deferUntil == nil {
+            copy.deferUntil = rule.next(after: now, calendar: calendar)
+            return copy
+        }
+        var anchor = (due ?? deferUntil)!
+        var steps = 0
+        repeat {
+            anchor = rule.next(after: anchor, calendar: calendar)
+            steps += 1
+        } while anchor < tomorrow
+        func advance(_ date: Date?) -> Date? {
+            guard var d = date else { return nil }
+            for _ in 0..<steps { d = rule.next(after: d, calendar: calendar) }
+            return d
+        }
+        copy.due = advance(due)
+        copy.deferUntil = advance(deferUntil)
+        return copy
+    }
 }
 
 struct Project: Identifiable, Codable, Hashable {
@@ -106,6 +179,7 @@ extension TaskItem {
         deferUntil = try c.decodeIfPresent(Date.self, forKey: .deferUntil)
         due = try c.decodeIfPresent(Date.self, forKey: .due)
         starred = try c.decodeIfPresent(Bool.self, forKey: .starred) ?? false
+        repeatRule = try? c.decodeIfPresent(RepeatRule.self, forKey: .repeatRule)
         createdAt = try c.decodeIfPresent(Date.self, forKey: .createdAt) ?? Date()
         updatedAt = try c.decodeIfPresent(Date.self, forKey: .updatedAt) ?? createdAt
         completedAt = try c.decodeIfPresent(Date.self, forKey: .completedAt)

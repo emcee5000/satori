@@ -20,6 +20,7 @@ struct ShortcutsView: View {
             ("esc", "Back to the list / close the inspector"),
             ("⌘K", "Complete"),
             ("⌫", "Move to Trash"),
+            ("⌘Z  ⇧⌘Z", "Undo / redo"),
         ]),
         ("Move the selected to-do", [
             ("⌘I", "Inbox"),
@@ -33,6 +34,8 @@ struct ShortcutsView: View {
         ]),
         ("Everything else", [
             ("⇧⌘N  ⌥⇧⌘N", "New to-do / new project"),
+            ("⌘F", "Find a to-do or project"),
+            ("⌃⌥Space", "Capture from any app"),
             ("⇧⌘I", "Process Inbox (↩ and ⌘1–3 answer each question)"),
             ("⌃⌘I", "Show/hide inspector"),
             ("⌘+  ⌘−  ⌘0", "Text size"),

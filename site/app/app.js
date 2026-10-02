@@ -9,6 +9,13 @@
 
   let data = load();
   let cfg = JSON.parse(localStorage.getItem(SYNC_KEY) || "{}");
+  // A setup link from Satori for Mac (Settings → Sync → Connect iPhone) carries the repo and token.
+  const linked = S.parseSetupLink(location.hash);
+  if (linked) {
+    cfg = linked;
+    localStorage.setItem(SYNC_KEY, JSON.stringify(cfg));
+    history.replaceState(null, "", "#settings");
+  }
   let view = location.hash.slice(1) || "inbox";
   let editing = null;
   let sync = { state: cfg.repo && cfg.token ? "idle" : "off", message: "", at: null };
@@ -102,6 +109,7 @@
     if (t.bucket === "waiting" && t.waitingOn) meta.push(`<span class="wait">→ ${esc(t.waitingOn)}</span>`);
     if (S.isScheduled(t)) meta.push(`<span class="start">starts ${S.friendly(t.deferUntil)}</span>`);
     if (t.due) meta.push(`<span class="${S.isOverdue(t) ? "over" : ""}">due ${S.friendly(t.due)}</span>`);
+    if (S.REPEAT_RULES[t.repeatRule]) meta.push(`↻ ${S.REPEAT_RULES[t.repeatRule]}`);
     if (t.notes) meta.push("≡ note");
     return `<div class="row${t.completedAt ? " done" : ""}" data-open="${t.id}">
       <button class="box" data-check="${t.id}" aria-label="Complete">${t.completedAt ? "[x]" : "[ ]"}</button>
@@ -228,6 +236,9 @@
         <div><div class="label">start date</div><input type="date" id="f-start" value="${dateValue(t.deferUntil)}"></div>
         <div><div class="label">due date</div><input type="date" id="f-due" value="${dateValue(t.due)}"></div>
       </div>
+      <div class="label">repeat</div>
+      <div class="chips"><button class="chip${!t.repeatRule ? " on" : ""}" data-repeat="">never</button>
+        ${Object.entries(S.REPEAT_RULES).map(([rule, label]) => `<button class="chip${t.repeatRule === rule ? " on" : ""}" data-repeat="${rule}">${label}</button>`).join("")}</div>
       <div class="actions">
         ${t.trashedAt
           ? `<button class="btn" data-restore="${t.id}">Put Back</button><button class="btn danger" data-destroy="${t.id}">Delete</button>`
@@ -249,6 +260,8 @@
     return `
       <div class="card"><h3>Sync with your Mac</h3>
         <p>Satori syncs through a private GitHub repo you own. Use the same repo and token as in Satori for Mac → Settings → Sync.</p>
+        <label>Setup link<input id="s-link" autocapitalize="off" autocorrect="off" placeholder="Paste from Mac: Settings → Sync → Connect iPhone"></label>
+        <p style="margin:0 0 8px">Or enter them yourself:</p>
         <label>Repository<input id="s-repo" autocapitalize="off" autocorrect="off" placeholder="you/satori-data" value="${esc(cfg.repo || "")}"></label>
         <label>Token<input id="s-token" type="password" autocapitalize="off" placeholder="github_pat_…" value="${esc(cfg.token || "")}"></label>
         <button class="btn primary" id="s-save">Save &amp; sync</button>
@@ -330,7 +343,7 @@
         if (!remote || S.canonical(merged) !== S.canonical(remote)) {
           const put = await fetch(url, {
             method: "PUT", headers,
-            body: JSON.stringify({ message: "Sync from phone", content: S.toBase64(S.pretty(merged) + "\n"), sha }),
+            body: JSON.stringify({ message: `Sync from phone: ${S.summary(remote, merged)}`, content: S.toBase64(S.pretty(merged) + "\n"), sha }),
           });
           remoteCache = null;
           if (put.status === 409 || put.status === 422) continue; // someone else wrote first; merge again
@@ -370,7 +383,7 @@
   });
 
   document.addEventListener("click", e => {
-    const el = e.target.closest("[data-check],[data-open],[data-go],[data-send],[data-ctx],[data-trash],[data-restore],[data-destroy],button[id],#scrim");
+    const el = e.target.closest("[data-check],[data-open],[data-go],[data-send],[data-ctx],[data-repeat],[data-trash],[data-restore],[data-destroy],button[id],#scrim");
     if (!el) return;
     const d = el.dataset;
     if (d.check) {
@@ -380,13 +393,15 @@
       if (t.completedAt) { S.update(data, t.id, x => { x.completedAt = null; }); save(); return; }
       el.textContent = "[x]";
       el.closest(".row")?.classList.add("done");
-      setTimeout(() => { S.update(data, t.id, x => { x.completedAt = S.iso(); }); if (editing === t.id) closeSheet(); save(); }, 350);
+      setTimeout(() => { S.complete(data, t.id); if (editing === t.id) closeSheet(); save(); }, 350);
     } else if (d.open) {
       openSheet(d.open);
     } else if (d.go) {
       go(d.go);
     } else if (d.send) {
       S.send(data, editing, d.send); save(); renderSheet();
+    } else if (d.repeat !== undefined) {
+      S.update(data, editing, t => { t.repeatRule = d.repeat || null; }); save(); renderSheet();
     } else if (d.ctx !== undefined) {
       S.update(data, editing, t => { t.context = d.ctx || null; }); save(); renderSheet();
     } else if (d.trash) {
@@ -420,6 +435,13 @@
 
   // Text fields in the sheet save as you type.
   document.addEventListener("input", e => {
+    if (e.target.id === "s-link") {
+      const linked = S.parseSetupLink(e.target.value);
+      $("s-status").innerHTML = linked ? "Link recognised. Tap <b>Save &amp; sync</b>."
+        : e.target.value ? '<span style="color:var(--red)">That isn\'t a Satori setup link.</span>' : syncStatusHTML();
+      if (linked) { $("s-repo").value = linked.repo; $("s-token").value = linked.token; }
+      return;
+    }
     if (!editing) return;
     const fields = { "f-title": "title", "f-notes": "notes", "f-waiting": "waitingOn" };
     const key = fields[e.target.id];

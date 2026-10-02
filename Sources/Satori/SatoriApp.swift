@@ -87,6 +87,20 @@ struct SatoriCommands: Commands {
                 .keyboardShortcut("i", modifiers: [.command, .shift])
         }
 
+        // Text fields keep their own undo while you're typing in them; otherwise ⌘Z
+        // undoes the last change to your to-dos and projects.
+        CommandGroup(replacing: .undoRedo) {
+            Button("Undo") { if !textField(undo: true) { store.undoLastChange() } }
+                .keyboardShortcut("z")
+            Button("Redo") { if !textField(undo: false) { store.redoLastChange() } }
+                .keyboardShortcut("z", modifiers: [.command, .shift])
+        }
+
+        CommandGroup(after: .textEditing) {
+            Button("Find…") { store.showSearch = true }
+                .keyboardShortcut("f")
+        }
+
         // ⌘W belongs to Waiting For, so closing a window moves to ⇧⌘W.
         CommandGroup(replacing: .saveItem) {
             Button("Close Window") { NSApp.keyWindow?.performClose(nil) }
@@ -154,6 +168,15 @@ struct SatoriCommands: Commands {
             Button("Trash") { store.go(.trash) }
                 .keyboardShortcut(.delete, modifiers: [.command, .shift])
         }
+    }
+
+    /// Sends undo/redo to the focused text field if it has something to undo.
+    private func textField(undo: Bool) -> Bool {
+        guard let text = NSApp.keyWindow?.firstResponder as? NSTextView,
+              let manager = text.undoManager,
+              undo ? manager.canUndo : manager.canRedo else { return false }
+        undo ? manager.undo() : manager.redo()
+        return true
     }
 
     private func moveTitle(_ d: Destination) -> String {

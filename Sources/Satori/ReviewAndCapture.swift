@@ -251,6 +251,8 @@ struct SettingsView: View {
                     .scaledFont(.caption).foregroundStyle(Theme.dim)
             }
 
+            CaptureAndReminderSettings()
+
             SyncSettings(sync: store.sync)
 
             Section("Data") {
@@ -280,6 +282,7 @@ struct SettingsView: View {
 
 struct SyncSettings: View {
     @Bindable var sync: SyncService
+    @State private var showConnect = false
 
     var body: some View {
         Section {
@@ -289,9 +292,12 @@ struct SyncSettings: View {
             HStack {
                 SyncStatusText(status: sync.status)
                 Spacer()
+                Button("Connect iPhone…") { showConnect = true }
+                    .disabled(!sync.isConfigured)
                 Button("Sync Now") { Task { await sync.syncNow() } }
                     .disabled(!sync.isConfigured)
             }
+            .sheet(isPresented: $showConnect) { ConnectPhoneView(sync: sync) }
         } header: {
             Text("Sync")
         } footer: {
@@ -320,5 +326,90 @@ struct SyncStatusText: View {
         case .failed(let message):
             Text("⚠ " + message).foregroundStyle(Theme.red).lineLimit(2)
         }
+    }
+}
+
+// MARK: - Capture & reminder settings
+
+struct CaptureAndReminderSettings: View {
+    @Environment(Store.self) private var store
+    @AppStorage(GlobalCapture.enabledKey) private var captureEnabled = true
+    @AppStorage(Reminders.enabledKey) private var remindersEnabled = true
+    @AppStorage(Reminders.hourKey) private var reminderHour = 9
+
+    var body: some View {
+        Section("Capture & Reminders") {
+            Toggle("Capture from anywhere with \(GlobalCapture.shortcut)", isOn: $captureEnabled)
+                .onChange(of: captureEnabled) { store.globalCapture?.update() }
+            Toggle("Remind me when a to-do is due", isOn: $remindersEnabled)
+                .onChange(of: remindersEnabled) { store.reminders.schedule(for: store.data) }
+            if remindersEnabled {
+                Picker("Reminder time", selection: $reminderHour) {
+                    ForEach(5..<22, id: \.self) { hour in
+                        Text(Calendar.current.date(bySettingHour: hour, minute: 0, second: 0, of: .now)!
+                            .formatted(date: .omitted, time: .shortened)).tag(hour)
+                    }
+                }
+                .onChange(of: reminderHour) { store.reminders.schedule(for: store.data) }
+            }
+        }
+    }
+}
+
+// MARK: - Connect iPhone
+
+/// Shows a link (and QR code) that sets up sync in the phone app in one step.
+struct ConnectPhoneView: View {
+    let sync: SyncService
+    @Environment(\.dismiss) private var dismiss
+    @State private var copied = false
+
+    var body: some View {
+        let link = sync.setupLink
+        VStack(spacing: 16) {
+            Text("Connect your iPhone").scaledFont(.title3, weight: .semibold)
+            if let link, let qr = QRCode.image(for: link.absoluteString) {
+                Image(nsImage: qr)
+                    .interpolation(.none)
+                    .resizable()
+                    .frame(width: 220, height: 220)
+                    .padding(10)
+                    .background(.white, in: RoundedRectangle(cornerRadius: 8))
+            }
+            VStack(alignment: .leading, spacing: 8) {
+                Text("**Phone app already on your Home Screen?** Copy the link, open Satori on the phone, go to **More → Sync & Settings** and paste it into **Setup link**.")
+                Text("**New phone?** Scan the code with the Camera, open the link in Safari, then tap **Share → Add to Home Screen**. If the Home Screen app doesn't show your to-dos, paste the link as above.")
+                Text("The link contains your GitHub token. Only share it with your own devices.")
+                    .foregroundStyle(Theme.orange)
+            }
+            .scaledFont(.callout)
+            .fixedSize(horizontal: false, vertical: true)
+            HStack {
+                Button(copied ? "Copied ✓" : "Copy Link") {
+                    guard let link else { return }
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString(link.absoluteString, forType: .string)
+                    copied = true
+                }
+                .disabled(link == nil)
+                Spacer()
+                Button("Done") { dismiss() }.keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding(24)
+        .frame(width: 420)
+    }
+}
+
+enum QRCode {
+    static func image(for text: String) -> NSImage? {
+        guard let filter = CIFilter(name: "CIQRCodeGenerator") else { return nil }
+        filter.setValue(Data(text.utf8), forKey: "inputMessage")
+        filter.setValue("M", forKey: "inputCorrectionLevel")
+        guard let output = filter.outputImage?.transformed(by: CGAffineTransform(scaleX: 8, y: 8)) else { return nil }
+        let rep = NSCIImageRep(ciImage: output)
+        let image = NSImage(size: rep.size)
+        image.addRepresentation(rep)
+        return image
     }
 }

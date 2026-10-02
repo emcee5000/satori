@@ -6,6 +6,25 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-10-02
+
+### Added
+
+- **Undo and redo** (⌘Z / ⇧⌘Z) for changes to to-dos and projects. Undo only reverts what you changed on this
+  Mac, never changes that arrived from the phone, and the undo syncs to the phone too.
+- **Find** (⌘F): search to-do and project titles and notes, then jump to the result.
+- **Repeating to-dos**: every day, weekday, week, month or year, on both the Mac and the phone. Completing one adds
+  the next.
+- **Capture from any app** with ⌃⌥Space (can be turned off in Settings).
+- **Due-date reminders** as notifications on the morning a to-do is due, at a time you choose.
+- **Connect iPhone**: a setup link (and QR code) in Settings → Sync fills in the repo and token on the phone.
+- Sync commit messages say what changed, e.g. "Sync from phone: 1 added, 2 completed".
+- Tests for sync merging, the shared file format, undo, search, reminders and repeats, run on every push.
+
+### Fixed
+
+- With `SATORI_DATA_DIR` set, sync is now always off, so test or demo data can't reach your real sync repo.
+
 ## [1.2.0] - 2026-10-02
 
 ### Changed
@@ -61,7 +80,8 @@ The first public release.
 - Ghostty-inspired terminal theme and a glowing ensō icon.
 - Local JSON storage with tolerant decoding and protection against overwriting unreadable files.
 
-[Unreleased]: https://github.com/emcee5000/satori/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/emcee5000/satori/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/emcee5000/satori/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/emcee5000/satori/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/emcee5000/satori/compare/v1.0.1...v1.1.0
 [1.0.1]: https://github.com/emcee5000/satori/compare/v1.0.0...v1.0.1

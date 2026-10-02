@@ -14,7 +14,7 @@ struct SyncMeta: Codable, Equatable {
 }
 
 protocol SyncItem: Identifiable where ID == UUID {
-    var updatedAt: Date { get }
+    var updatedAt: Date { get set }
 }
 
 extension TaskItem: SyncItem {}
@@ -42,6 +42,28 @@ extension AppData {
         out.lastReview = meta.lastReview
         out.reviewChecks = meta.reviewChecks
         return out
+    }
+
+    /// What changed between two copies, for the sync commit message,
+    /// e.g. "1 added, 2 completed". The web app's `summary` in core.js matches this.
+    static func summary(from old: AppData?, to new: AppData) -> String {
+        let before = Dictionary((old?.tasks ?? []).map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
+        var added = 0, completed = 0, trashed = 0, edited = 0
+        for t in new.tasks {
+            guard let was = before[t.id] else { added += 1; continue }
+            if t == was { continue }
+            if was.completedAt == nil && t.completedAt != nil { completed += 1 }
+            else if was.trashedAt == nil && t.trashedAt != nil { trashed += 1 }
+            else { edited += 1 }
+        }
+        let newIDs = Set(new.tasks.map(\.id))
+        let deleted = before.keys.filter { !newIDs.contains($0) }.count
+        let oldProjects = Dictionary((old?.projects ?? []).map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
+        let projects = new.projects.filter { oldProjects[$0.id] != $0 }.count
+        let parts = [(added, "added"), (completed, "completed"), (edited, "edited"), (trashed, "trashed"),
+                     (deleted, "deleted")].filter { $0.0 > 0 }.map { "\($0.0) \($0.1)" }
+            + (projects > 0 ? ["\(projects) project\(projects == 1 ? "" : "s") changed"] : [])
+        return parts.isEmpty ? "settings changed" : parts.joined(separator: ", ")
     }
 
     private static func mergeItems<T: SyncItem>(_ local: [T], _ remote: [T], deleted: [String: Date]) -> [T] {
@@ -105,9 +127,11 @@ final class SyncService {
     }
 
     var status: Status = .off
-    var enabled: Bool { didSet { defaults.set(enabled, forKey: "syncEnabled"); restart() } }
-    var repo: String { didSet { defaults.set(repo, forKey: "syncRepo"); remoteCache = nil } }
-    var token: String { didSet { Keychain.write(token); remoteCache = nil } }
+    var enabled: Bool { didSet { if allowed { defaults.set(enabled, forKey: "syncEnabled") }; restart() } }
+    var repo: String { didSet { if allowed { defaults.set(repo, forKey: "syncRepo") }; remoteCache = nil } }
+    var token: String { didSet { if allowed { Keychain.write(token) }; remoteCache = nil } }
+    /// False when using a separate data folder (SATORI_DATA_DIR): sync never runs there.
+    @ObservationIgnored let allowed: Bool
 
     @ObservationIgnored weak var store: Store?
     @ObservationIgnored private let defaults = UserDefaults.standard
@@ -124,12 +148,29 @@ final class SyncService {
         set { defaults.set(newValue.flatMap { try? Store.encoder.encode($0) }, forKey: "syncBaseMeta") }
     }
 
-    var isConfigured: Bool { enabled && repo.contains("/") && !token.isEmpty }
+    var isConfigured: Bool { allowed && enabled && repo.contains("/") && !token.isEmpty }
 
-    init() {
-        enabled = UserDefaults.standard.bool(forKey: "syncEnabled")
-        repo = UserDefaults.standard.string(forKey: "syncRepo") ?? ""
-        token = Keychain.read() ?? ""
+    nonisolated static let webAppURL = "https://emcee5000.github.io/satori/app/"
+
+    /// Opens the phone app with this repo and token filled in. They travel in the
+    /// URL fragment, which browsers never send to the server.
+    var setupLink: URL? { isConfigured ? Self.setupLink(repo: repo, token: token) : nil }
+
+    nonisolated static func setupLink(repo: String, token: String) -> URL? {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = .sortedKeys
+        guard let json = try? encoder.encode(["repo": repo, "token": token]) else { return nil }
+        let code = json.base64EncodedString()
+            .replacingOccurrences(of: "+", with: "-").replacingOccurrences(of: "/", with: "_")
+            .replacingOccurrences(of: "=", with: "")
+        return URL(string: Self.webAppURL + "#connect=" + code)
+    }
+
+    init(allowed: Bool = true) {
+        self.allowed = allowed
+        enabled = allowed && UserDefaults.standard.bool(forKey: "syncEnabled")
+        repo = allowed ? UserDefaults.standard.string(forKey: "syncRepo") ?? "" : ""
+        token = allowed ? Keychain.read() ?? "" : ""
         NotificationCenter.default.addObserver(
             forName: NSApplication.didBecomeActiveNotification, object: nil, queue: .main
         ) { [weak self] _ in
@@ -188,7 +229,7 @@ final class SyncService {
 
                 if remote == nil || canonical(merged) != canonical(remote!) {
                     do {
-                        try await push(merged, sha: sha)
+                        try await push(merged, sha: sha, summary: AppData.summary(from: remote, to: merged))
                         remoteCache = nil
                     } catch SyncError.conflict {
                         remoteCache = nil
@@ -256,10 +297,10 @@ final class SyncService {
         }
     }
 
-    private func push(_ appData: AppData, sha: String?) async throws {
+    private func push(_ appData: AppData, sha: String?, summary: String) async throws {
         struct Body: Encodable { let message: String; let content: String; let sha: String? }
         let host = Host.current().localizedName ?? "Mac"
-        let body = Body(message: "Sync from \(host)", content: try Store.encoder.encode(appData).base64EncodedString(), sha: sha)
+        let body = Body(message: "Sync from \(host): \(summary)", content: try Store.encoder.encode(appData).base64EncodedString(), sha: sha)
         let (_, response) = try await URLSession.shared.data(for: request("PUT", body: try JSONEncoder().encode(body)))
         let code = (response as? HTTPURLResponse)?.statusCode ?? 0
         if code == 409 || code == 422 { throw SyncError.conflict }

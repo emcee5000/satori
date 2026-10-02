@@ -244,6 +244,10 @@ struct TaskListView: View {
         let target: Pane = request == .newTask && destination.placeholder != nil ? .newTask : .list
         DispatchQueue.main.async {
             focus = target
+            if let wanted = store.selectRequest, displayedIDs().contains(wanted) {
+                selection = wanted
+                store.selectRequest = nil
+            }
             // Give the arrow keys something to move from.
             if target == .list && selection == nil { selection = displayedIDs().first }
         }
@@ -341,6 +345,7 @@ struct TaskRow: View {
             (task.bucket == .waiting && !task.waitingOn.isEmpty) ? ("→ " + task.waitingOn, Theme.orange) : nil,
             task.deferUntil.flatMap { task.isScheduled() ? ("starts " + $0.friendly.lowercased(), Theme.red.opacity(0.8)) : nil },
             task.due.map { ("due " + $0.friendly.lowercased(), task.isOverdue ? Theme.red : Theme.dim) },
+            task.repeatRule.map { ("↻ " + $0.title.lowercased(), Theme.dim) },
             task.notes.isEmpty ? nil : ("≡ note", Theme.faint),
         ].compactMap { $0 }
         if !parts.isEmpty {

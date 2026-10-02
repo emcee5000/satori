@@ -50,6 +50,11 @@ struct TaskDetailView: View {
                 Section("Dates") {
                     OptionalDatePicker(title: "Start date", help: "Hidden in Scheduled until this day · ⌘D = tomorrow", date: t.deferUntil)
                     OptionalDatePicker(title: "Due date", help: "Only for real deadlines", date: t.due)
+                    Picker("Repeat", selection: t.repeatRule) {
+                        Text("Never").tag(RepeatRule?.none)
+                        ForEach(RepeatRule.allCases) { Text($0.title).tag(Optional($0)) }
+                    }
+                    .help("When you complete it, the next one is added automatically")
                 }
 
                 Section {

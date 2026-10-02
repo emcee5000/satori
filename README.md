@@ -89,6 +89,20 @@ swift run
 
 You can also open `Package.swift` in Xcode and press ⌘R.
 
+Set `SATORI_DATA_DIR` to use a separate data folder, for example `SATORI_DATA_DIR=/tmp/satori-demo swift run`.
+Sync is always off with a separate folder, so test data never reaches your real repo.
+
+### Tests
+
+```sh
+swift test                          # the Mac app (needs the full Xcode app for XCTest)
+node --test Tests/web/*.test.js     # the phone app's data logic
+```
+
+The tests cover sync merging, the file format both apps share, undo, search, reminders and repeating to-dos.
+`Tests/fixtures/recurrence.json` holds the repeat cases both test suites check, so the Mac and phone always agree.
+Both suites run on every push.
+
 ## How Satori maps to GTD
 
 | GTD step     | In Satori |
@@ -122,7 +136,21 @@ automatically, so you can sweep through a list without touching the mouse.
 **Do the weekly review.** Press <kbd>⇧⌘R</kbd>. Move with the arrow keys, <kbd>Space</kbd> checks off a step,
 <kbd>Return</kbd> opens its list, and <kbd>⌘↩</kbd> finishes the review.
 
-**Capture from anywhere.** Click the tray icon in the menu bar, type, and press Return.
+**Capture from anywhere.** Press <kbd>⌃⌥Space</kbd> in any app, type, and press Return. It goes straight to your
+Inbox. You can also click the tray icon in the menu bar. (Turn the shortcut off in Settings → Capture & Reminders.)
+
+**Find anything.** Press <kbd>⌘F</kbd> and type a few words from a title or note. Use the arrow keys to choose and
+Return to jump to it.
+
+**Undo.** <kbd>⌘Z</kbd> undoes the last change, such as completing, moving or trashing a to-do; <kbd>⇧⌘Z</kbd> redoes
+it. Undo only touches what you changed, so it never reverts changes that arrived from your phone.
+
+**Repeat to-dos.** In the inspector, set **Repeat** to every day, weekday, week, month or year. When you complete it,
+the next one is added. Its dates move forward together; with no dates, it waits in Scheduled until it's next due.
+This works the same on the phone.
+
+**Get reminders.** Satori sends a notification on the morning a to-do is due (9 am by default; change it in Settings →
+Capture & Reminders). The first time, macOS asks you to allow notifications.
 
 ## Keyboard reference
 
@@ -162,6 +190,9 @@ Plain <kbd>⌘</kbd> + letter **moves the selected to-do**; <kbd>⌥⌘</kbd> + 
 | ⇧⌘I | Process Inbox |
 | ⌘K | Complete the selected to-do |
 | ⌫ | Move to Trash |
+| ⌘Z / ⇧⌘Z | Undo / redo |
+| ⌘F | Find a to-do or project |
+| ⌃⌥Space | Capture to the Inbox from any app |
 | ⇧⌘R / ⌥⌘L / ⇧⌘⌫ | Weekly Review / Logbook / Trash |
 | ⌃⌘I | Show or hide the inspector |
 | ⌘+ (or ⌘=) / ⌘− / ⌘0 | Bigger text / smaller text / actual size |
@@ -183,14 +214,17 @@ Satori syncs through a **private GitHub repository you own**. There's no Satori 
    - *Repository access:* **Only select repositories** → your `satori-data` repo
    - *Permissions → Repository permissions → Contents:* **Read and write**
 3. **On your Mac:** Satori → **Settings (⌘,) → Sync**. Turn it on and enter the repo (`you/satori-data`) and the token.
-4. **On your phone:** **More → Sync & Settings**. Enter the same repo and token, then tap **Save & sync**.
+4. **On your phone:** on the Mac, click **Connect iPhone…** in the Sync settings and **Copy Link**. On the phone, open
+   Satori, go to **More → Sync & Settings**, paste into **Setup link** and tap **Save & sync**. (Or type the repo and
+   token in yourself.) The link contains your token, so only paste it on your own devices.
 
 Changes show up on the other device within a few seconds. Each app uploads about a second after you make a
 change and checks for changes every 3 seconds while it's open. Checks that find nothing new are free, so this doesn't
 use up your GitHub API allowance.
 
 **How merging works:** each to-do and project keeps whichever copy was edited most recently, and anything deleted
-on either device stays deleted. Every sync is a commit to your repo, so you can always look back or restore.
+on either device stays deleted. Every sync is a commit to your repo whose message says what changed (for example
+"Sync from phone: 1 added, 2 completed"), so you can always look back or restore.
 
 **Security:** the token can only access that one repo. On the Mac it's stored in the Keychain; on the phone it's
 kept in the web app's local storage, so use a token scoped as above.

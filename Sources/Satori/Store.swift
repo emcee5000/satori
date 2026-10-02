@@ -5,7 +5,13 @@ import SwiftUI
 @MainActor
 @Observable
 final class Store {
-    var data: AppData { didSet { scheduleSave() } }
+    var data: AppData {
+        didSet {
+            if recordsUndo { undo.record(from: oldValue, to: data) }
+            scheduleSave()
+            if data.tasks != oldValue.tasks { reminders.schedule(for: data) }
+        }
+    }
 
     // UI state shared between windows, menus and the menu bar.
     var selection: Destination? = .inbox
@@ -14,12 +20,20 @@ final class Store {
     var moveToProjectTaskID: UUID?
     var showInspector = false
     var showShortcuts = false
+    var showSearch = false
+    /// A to-do or project to select once its list appears (e.g. after a search).
+    var selectRequest: UUID?
     /// The pane that currently has keyboard focus; drives the status line.
     var activePane: Pane?
     /// Asks a pane to take keyboard focus; the pane clears it once handled.
     var focusRequest: Pane?
 
-    let sync = SyncService()
+    let sync: SyncService
+    /// Undo and redo for changes made on this Mac (changes from sync aren't undoable).
+    let undo = UndoHistory()
+    let reminders = Reminders()
+    @ObservationIgnored private(set) var globalCapture: GlobalCapture?
+    @ObservationIgnored private var recordsUndo = true
     @ObservationIgnored let fileURL: URL
     @ObservationIgnored private var saveWork: DispatchWorkItem?
 
@@ -47,8 +61,11 @@ final class Store {
     }()
 
     init() {
-        // SATORI_DATA_DIR points the app at a separate data folder (for development or demos).
-        let dir = ProcessInfo.processInfo.environment["SATORI_DATA_DIR"].map { URL(fileURLWithPath: $0, isDirectory: true) }
+        // SATORI_DATA_DIR points the app at a separate data folder (for development, demos
+        // or tests). Sync stays off there, so throwaway data never reaches your real repo.
+        let customDir = ProcessInfo.processInfo.environment["SATORI_DATA_DIR"]
+        sync = SyncService(allowed: customDir == nil)
+        let dir = customDir.map { URL(fileURLWithPath: $0, isDirectory: true) }
             ?? FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
                 .appendingPathComponent("Satori", isDirectory: true)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
@@ -76,6 +93,8 @@ final class Store {
 
         sync.store = self
         sync.restart()
+        reminders.schedule(for: data)
+        globalCapture = GlobalCapture(store: self)
 
         NotificationCenter.default.addObserver(
             forName: NSApplication.willTerminateNotification, object: nil, queue: .main
@@ -108,7 +127,22 @@ final class Store {
 
     /// Replaces local data with a merged copy from sync.
     func applySynced(_ merged: AppData) {
+        recordsUndo = false
         data = merged
+        recordsUndo = true
+    }
+
+    func undoLastChange() { applyHistory(undo.popUndo(), redo: false) }
+    func redoLastChange() { applyHistory(undo.popRedo(), redo: true) }
+
+    private func applyHistory(_ step: UndoHistory.Step?, redo: Bool) {
+        guard let step else { return }
+        var copy = data
+        let inverse = step.apply(to: &copy)
+        recordsUndo = false
+        data = copy
+        recordsUndo = true
+        redo ? undo.pushUndo(inverse) : undo.pushRedo(inverse)
     }
 
     // MARK: Queries
@@ -149,6 +183,27 @@ final class Store {
     }
 
     func count(_ destination: Destination) -> Int { tasks(for: destination).count }
+
+    /// The list where a to-do lives, for jumping to it from search.
+    func home(of task: TaskItem) -> Destination {
+        if task.trashedAt != nil { return .trash }
+        if task.isDone { return .logbook }
+        if let id = task.projectID, project(id) != nil { return .project(id) }
+        if task.isScheduled() { return .scheduled }
+        return task.bucket.destination
+    }
+
+    /// To-dos and projects whose title or notes contain every word of the query.
+    func search(_ query: String) -> (projects: [Project], tasks: [TaskItem]) {
+        let words = query.split(separator: " ").map(String.init)
+        guard !words.isEmpty else { return ([], []) }
+        func matches(_ text: String) -> Bool { words.allSatisfy { text.localizedStandardContains($0) } }
+        let projects = data.projects.filter { $0.trashedAt == nil && matches($0.title + " " + $0.outcome) }
+        // Open to-dos first, then finished ones, newest first within each.
+        let tasks = data.tasks.filter { $0.trashedAt == nil && matches($0.title + " " + $0.notes) }
+            .sorted { ($0.isDone ? 1 : 0, $1.updatedAt) < ($1.isDone ? 1 : 0, $0.updatedAt) }
+        return (projects, tasks)
+    }
 
     func task(_ id: UUID) -> TaskItem? { data.tasks.first { $0.id == id } }
 
@@ -209,7 +264,19 @@ final class Store {
     }
 
     func toggleComplete(_ id: UUID) {
-        update(id) { $0.completedAt = $0.completedAt == nil ? Date() : nil }
+        guard let task = task(id) else { return }
+        if task.completedAt == nil, let next = task.nextOccurrence() {
+            // Complete it and add the next one as a single change, so one undo reverts both.
+            var copy = data
+            if let i = copy.tasks.firstIndex(where: { $0.id == id }) {
+                copy.tasks[i].completedAt = Date()
+                copy.tasks[i].updatedAt = Date()
+            }
+            copy.tasks.append(next)
+            data = copy
+        } else {
+            update(id) { $0.completedAt = $0.completedAt == nil ? Date() : nil }
+        }
     }
 
     func toggleStar(_ id: UUID) {

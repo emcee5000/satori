@@ -39,6 +39,9 @@ struct ContentView: View {
         .sheet(isPresented: $store.showShortcuts) {
             ShortcutsView().scaledFont(.body)
         }
+        .sheet(isPresented: $store.showSearch) {
+            SearchView().scaledFont(.body)
+        }
         .alert("New Project", isPresented: $store.showNewProject) {
             TextField("Project name", text: $newProjectName)
             Button("Create") {
