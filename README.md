@@ -49,6 +49,14 @@ for capturing, and a status line that always shows which keys work right now.
 
 ## Install
 
+### Homebrew
+
+```sh
+brew install --cask emcee5000/tap/satori
+```
+
+Upgrade later with `brew upgrade --cask satori`. The first time you open it, follow step 4 below.
+
 ### Download
 
 1. Grab `Satori.zip` from the [latest release](https://github.com/emcee5000/satori/releases/latest).

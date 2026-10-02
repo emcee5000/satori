@@ -426,14 +426,14 @@
       <div><dt>Next actions</dt><dd>For each item, name the very next physical step: "Call Bob about the lease", not
         "Lease".</dd></div>
       <div><dt>Contexts</dt><dd>Group actions by where you can do them (@phone, @computer, @errands), so you only see
-        what's possible right now.</dd></div>
+        what's possible right now. <a href="guides/gtd-contexts/">More on contexts</a>.</dd></div>
       <div><dt>The two-minute rule</dt><dd>If it takes less than two minutes, do it now. Tracking it would take longer.</dd></div>
       <div><dt>Projects</dt><dd>Any outcome that takes more than one step. Every active project needs a next
         action.</dd></div>
       <div><dt>Waiting For, Someday/Maybe and the tickler</dt><dd>Delegated items, ideas for later and things for a future date each get their own
         list, out of sight until they matter.</dd></div>
       <div><dt>The weekly review</dt><dd>Once a week, empty your inbox, check every list and look ahead. It keeps the system
-        trustworthy.</dd></div>
+        trustworthy. <a href="guides/weekly-review/">How to do one</a>.</dd></div>
       <div><dt>Mind like water</dt><dd>Allen's phrase for the calm of knowing nothing is slipping through the cracks.</dd></div>
     </dl>
   </section>
@@ -545,8 +545,11 @@
         <p class="note">Needs macOS 14 or later. Runs natively on Apple silicon and Intel Macs.</p>
       </div>
       <div class="term">
-        <div class="bar">build from source<button class="copy" id="copy" type="button">copy</button></div>
-<pre id="cmd"><span class="c"># needs Xcode Command Line Tools</span>
+        <div class="bar">homebrew · source<button class="copy" id="copy" type="button">copy</button></div>
+<pre id="cmd"><span class="c"># or install with Homebrew</span>
+<span class="d">$</span> brew install --cask emcee5000/tap/satori
+
+<span class="c"># or build from source (needs Xcode Command Line Tools)</span>
 <span class="d">$</span> git clone https://github.com/emcee5000/satori.git
 <span class="d">$</span> cd satori
 <span class="d">$</span> ./scripts/build-app.sh --install</pre>
@@ -571,7 +574,8 @@
     <span>Satori · MIT licensed · <a href="https://github.com/emcee5000/satori">Source</a> ·
       <a href="https://github.com/emcee5000/satori#readme">Docs</a> ·
       <a href="https://github.com/emcee5000/satori/blob/main/CHANGELOG.md">Changelog</a> ·
-      <a href="https://github.com/emcee5000/satori/releases">Releases</a></span>
+      <a href="https://github.com/emcee5000/satori/releases">Releases</a> ·
+      <a href="guides/">GTD guides</a></span>
     <span>Getting Things Done® is a trademark of the David Allen Company. Satori isn't affiliated with it.</span>
   </div>
 </footer>
@@ -589,7 +593,7 @@
     .catch(() => {});
 
   document.getElementById("copy").addEventListener("click", e => {
-    const text = "git clone https://github.com/emcee5000/satori.git\ncd satori\n./scripts/build-app.sh --install";
+    const text = "brew install --cask emcee5000/tap/satori";
     navigator.clipboard?.writeText(text).then(() => {
       e.target.textContent = "copied";
       setTimeout(() => (e.target.textContent = "copy"), 1500);
