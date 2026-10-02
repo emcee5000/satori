@@ -19,6 +19,10 @@
 
 ---
 
+<p align="center">
+  <img src="docs/screenshot.png" width="900" alt="Satori's Next Actions list grouped by context, with the sidebar of GTD lists and a to-do open in the details panel">
+</p>
+
 Satori is a native task manager built around David Allen's *Getting Things Done* (GTD), in the spirit of
 [Things](https://culturedcode.com/things/), but smaller, free, and designed to run entirely from the keyboard.
 It looks like a terminal (think [Ghostty](https://ghostty.org)): monospaced type, `[ ]` checkboxes, a `❯` prompt

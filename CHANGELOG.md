@@ -9,6 +9,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ### Added
 
 - Project website at https://emcee5000.github.io/satori/, deployed automatically from `site/`.
+- Screenshot in the README and on the website.
+- `SATORI_DATA_DIR` environment variable to run Satori against a separate data folder.
+
+### Fixed
+
+- Jumping to a list with ⌥⌘ + letter now puts keyboard focus in the new list, so arrow keys work right away.
 
 ## [1.0.1] - 2026-10-02
 

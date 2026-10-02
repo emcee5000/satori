@@ -36,8 +36,10 @@ final class Store {
     }()
 
     init() {
-        let dir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("Satori", isDirectory: true)
+        // SATORI_DATA_DIR points the app at a separate data folder (for development or demos).
+        let dir = ProcessInfo.processInfo.environment["SATORI_DATA_DIR"].map { URL(fileURLWithPath: $0, isDirectory: true) }
+            ?? FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+                .appendingPathComponent("Satori", isDirectory: true)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         fileURL = dir.appendingPathComponent("data.json")
 
@@ -325,6 +327,8 @@ final class Store {
     /// Navigate to a list and put keyboard focus in it.
     func go(_ destination: Destination) {
         selection = destination
-        focusRequest = .list
+        // Ask on the next run-loop pass, once the new list exists; otherwise the
+        // list being replaced claims the focus and the new one appears unfocused.
+        DispatchQueue.main.async { self.focusRequest = .list }
     }
 }

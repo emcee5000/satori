@@ -3,9 +3,9 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Satori — Getting Things Done, from the keyboard</title>
+  <title>Satori — Mind like water</title>
   <meta name="description" content="Satori is a small, free, keyboard-first Getting Things Done app for macOS, with a terminal soul.">
-  <meta property="og:title" content="Satori — Getting Things Done, from the keyboard">
+  <meta property="og:title" content="Satori — Mind like water">
   <meta property="og:description" content="A small, free, keyboard-first GTD app for macOS, with a terminal soul.">
   <meta property="og:image" content="https://emcee5000.github.io/satori/icon.png">
   <meta property="og:url" content="https://emcee5000.github.io/satori/">
@@ -86,6 +86,10 @@
     h1 { font: 700 clamp(36px, 6vw, 64px)/1.05 var(--mono); letter-spacing: -0.03em; margin: 0 0 18px; }
     h1 .cursor { display: inline-block; width: 0.5em; height: 0.9em; background: var(--text); vertical-align: -0.08em; margin-left: 0.08em; animation: blink 1.1s steps(1) infinite; }
     @keyframes blink { 50% { opacity: 0; } }
+    .subtitle { font: 500 clamp(20px, 2.8vw, 26px) var(--mono); color: var(--blue); margin: -6px 0 20px; letter-spacing: -0.01em; }
+    .shot { margin: 56px auto 0; max-width: 1080px; }
+    .shot img { width: 100%; height: auto; display: block; border-radius: 14px; box-shadow: 0 40px 100px -20px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(0, 0, 0, 0.5); }
+    .shot figcaption { margin-top: 14px; font: 13px var(--mono); color: var(--faint); }
     .lede { font-size: clamp(17px, 2.2vw, 20px); color: var(--dim); max-width: 640px; margin: 0 auto 30px; }
     .cta { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
     .btn {
@@ -236,7 +240,8 @@
   <div class="wrap">
     <img class="icon" src="icon.png" alt="Satori app icon: a glowing ensō around a block cursor">
     <p class="eyebrow">~/satori  ·  free &amp; open source  ·  macOS</p>
-    <h1>Mind like water<span class="cursor" aria-hidden="true"></span></h1>
+    <h1>Satori<span class="cursor" aria-hidden="true"></span></h1>
+    <p class="subtitle">Mind like water</p>
     <p class="lede">A small, keyboard-first <strong>Getting Things Done</strong> app for macOS, with a terminal soul.
       Capture everything, clarify it fast, and never reach for the mouse.</p>
     <div class="cta">
@@ -251,40 +256,10 @@
     </div>
     <p class="meta" id="meta">Apple silicon · macOS 14+ · MIT licensed</p>
 
-    <div class="demo" aria-label="Animated demo of Satori capturing a to-do and moving it to Next Actions">
-      <div class="window">
-        <div class="titlebar"><i></i><i></i><i></i></div>
-        <div class="app">
-          <aside class="side" aria-hidden="true">
-            <div class="item on" id="side-inbox"><b style="background:var(--blue)"></b>Inbox<span class="n" id="n-inbox">2</span></div>
-            <div class="item"><b style="background:var(--yellow)"></b>Today<span class="n">3</span></div>
-            <h6>Organize</h6>
-            <div class="item" id="side-next"><b style="background:var(--cyan)"></b>Next Actions<span class="n" id="n-next">9</span></div>
-            <div class="item"><b style="background:var(--red)"></b>Scheduled</div>
-            <div class="item"><b style="background:var(--orange)"></b>Waiting For<span class="n">2</span></div>
-            <div class="item"><b style="background:#b8a584"></b>Someday/Maybe</div>
-            <h6>Projects</h6>
-            <div class="item"><b style="background:var(--magenta)"></b>Launch website</div>
-            <div class="item"><b style="background:var(--orange)"></b>Plan garden</div>
-            <h6>Reflect</h6>
-            <div class="item"><b style="background:var(--yellow)"></b>Weekly Review</div>
-          </aside>
-          <div class="main">
-            <div class="body">
-              <h3><span class="chev">❯</span> Inbox <span class="count" id="count">2</span></h3>
-              <div class="hint"># Capture everything. Clarify it later.</div>
-              <div class="prompt" id="prompt"><span class="p">❯</span><span id="typed"></span><span class="ph" id="ph">Capture a thought… (press Space)</span></div>
-              <ul class="rows" id="rows">
-                <li><span class="box">[ ]</span><span class="t">Renew passport<small><span class="ctx">@errands</span></small></span></li>
-                <li><span class="box">[ ]</span><span class="t">Draft launch post<small><span class="proj">▸ Launch website</span></small></span><span class="star">★</span></li>
-              </ul>
-            </div>
-            <div class="status" id="status"><span><b>space</b> new</span><span><b>↩</b> edit</span><span><b>⌘K</b> done</span><span class="opt"><b>⌘I T N D W S R</b> move</span><span class="right">? for shortcuts</span></div>
-            <div class="keytoast" id="toast"></div>
-          </div>
-        </div>
-      </div>
-    </div>
+    <figure class="shot">
+      <img src="screenshot.png" width="1800" height="1098" alt="Satori's Next Actions list grouped by context, with the sidebar of GTD lists and a to-do open in the details panel">
+      <figcaption>Next Actions, grouped by context. Every list is one keystroke away.</figcaption>
+    </figure>
   </div>
 </header>
 
@@ -329,6 +304,40 @@
         <li><span class="k"><kbd>⌘K</kbd></span><span>Complete it.</span></li>
         <li><span class="k"><kbd>⌘+</kbd> <kbd>⌘−</kbd></span><span>Make all the text bigger or smaller.</span></li>
       </ul>
+    </div>
+    <div class="demo" style="margin-top:44px" aria-label="Animated demo of Satori capturing a to-do and moving it to Next Actions">
+      <div class="window">
+        <div class="titlebar"><i></i><i></i><i></i></div>
+        <div class="app">
+          <aside class="side" aria-hidden="true">
+            <div class="item on" id="side-inbox"><b style="background:var(--blue)"></b>Inbox<span class="n" id="n-inbox">2</span></div>
+            <div class="item"><b style="background:var(--yellow)"></b>Today<span class="n">3</span></div>
+            <h6>Organize</h6>
+            <div class="item" id="side-next"><b style="background:var(--cyan)"></b>Next Actions<span class="n" id="n-next">9</span></div>
+            <div class="item"><b style="background:var(--red)"></b>Scheduled</div>
+            <div class="item"><b style="background:var(--orange)"></b>Waiting For<span class="n">2</span></div>
+            <div class="item"><b style="background:#b8a584"></b>Someday/Maybe</div>
+            <h6>Projects</h6>
+            <div class="item"><b style="background:var(--magenta)"></b>Launch website</div>
+            <div class="item"><b style="background:var(--orange)"></b>Plan garden</div>
+            <h6>Reflect</h6>
+            <div class="item"><b style="background:var(--yellow)"></b>Weekly Review</div>
+          </aside>
+          <div class="main">
+            <div class="body">
+              <h3><span class="chev">❯</span> Inbox <span class="count" id="count">2</span></h3>
+              <div class="hint"># Capture everything. Clarify it later.</div>
+              <div class="prompt" id="prompt"><span class="p">❯</span><span id="typed"></span><span class="ph" id="ph">Capture a thought… (press Space)</span></div>
+              <ul class="rows" id="rows">
+                <li><span class="box">[ ]</span><span class="t">Renew passport<small><span class="ctx">@errands</span></small></span></li>
+                <li><span class="box">[ ]</span><span class="t">Draft launch post<small><span class="proj">▸ Launch website</span></small></span><span class="star">★</span></li>
+              </ul>
+            </div>
+            <div class="status" id="status"><span><b>space</b> new</span><span><b>↩</b> edit</span><span><b>⌘K</b> done</span><span class="opt"><b>⌘I T N D W S R</b> move</span><span class="right">? for shortcuts</span></div>
+            <div class="keytoast" id="toast"></div>
+          </div>
+        </div>
+      </div>
     </div>
   </section>
 

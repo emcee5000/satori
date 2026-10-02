@@ -39,8 +39,11 @@ swift run            # run the app from the terminal
 ./scripts/build-app.sh   # build a full Satori.app into ./build
 ```
 
-`swift run` uses your real data file. To experiment safely, back up
-`~/Library/Application Support/Satori/data.json` first.
+`swift run` uses your real data file. To experiment safely, point Satori at a scratch folder instead:
+
+```sh
+SATORI_DATA_DIR=/tmp/satori-dev swift run
+```
 
 Read [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for a tour of the code.
 
