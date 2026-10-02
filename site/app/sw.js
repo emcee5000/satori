@@ -1,5 +1,5 @@
 // Caches the app shell so Satori opens offline. GitHub API calls are never cached.
-const CACHE = "satori-app-v1";
+const CACHE = "satori-app-v2";
 const SHELL = ["./", "index.html", "app.js", "core.js", "manifest.webmanifest", "icon-192.png", "icon-512.png", "apple-touch-icon.png"];
 
 self.addEventListener("install", e => {

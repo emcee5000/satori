@@ -39,7 +39,7 @@
     return S.emptyData();
   }
   function persist() { localStorage.setItem(DATA_KEY, JSON.stringify(data)); }
-  function save() { persist(); render(); scheduleSync(2000); }
+  function save() { persist(); render(); scheduleSync(1000); }
 
   // ---- Rendering ----
 
@@ -85,7 +85,7 @@
         <span class="chev" style="color:var(${i.color})">❯</span>
         <h1>${esc(i.title)}</h1>
         ${n ? `<span class="count">${n}</span>` : ""}
-        ${syncBadge()}
+        <span id="sync-badge" style="margin-left:auto">${syncBadge()}</span>
       </div>
       <div class="hint"># ${esc(i.hint)}</div>
       ${i.placeholder ? `<form class="capture" id="capture"><span>❯</span>
@@ -238,18 +238,21 @@
 
   // ---- Settings ----
 
-  function settingsHTML() {
-    const status = sync.state === "off" ? "Sync is off."
+  function syncStatusHTML() {
+    return sync.state === "off" ? "Sync is off."
       : sync.state === "syncing" ? "Syncing…"
       : sync.state === "error" ? `<span style="color:var(--red)">⚠ ${esc(sync.message)}</span>`
       : sync.at ? `<span style="color:var(--green)">Synced at ${sync.at.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</span>` : "Ready.";
+  }
+
+  function settingsHTML() {
     return `
       <div class="card"><h3>Sync with your Mac</h3>
         <p>Satori syncs through a private GitHub repo you own. Use the same repo and token as in Satori for Mac → Settings → Sync.</p>
         <label>Repository<input id="s-repo" autocapitalize="off" autocorrect="off" placeholder="you/satori-data" value="${esc(cfg.repo || "")}"></label>
         <label>Token<input id="s-token" type="password" autocapitalize="off" placeholder="github_pat_…" value="${esc(cfg.token || "")}"></label>
         <button class="btn primary" id="s-save">Save &amp; sync</button>
-        <p style="margin-top:12px">${status}</p>
+        <p style="margin-top:12px" id="s-status">${syncStatusHTML()}</p>
         ${cfg.repo ? '<button class="btn" id="s-off">Turn off sync on this phone</button>' : ""}
       </div>
       <div class="card"><h3>Add to your home screen</h3>
@@ -265,24 +268,41 @@
 
   // ---- Sync through GitHub ----
 
-  let syncTimer = null, syncing = false, syncAgain = false;
+  // The last copy fetched from GitHub. Checking it with its ETag is free when nothing changed,
+  // which is what makes polling every few seconds affordable.
+  let syncTimer = null, syncing = false, syncAgain = false, remoteCache = null;
   function scheduleSync(delay) {
     if (!cfg.repo || !cfg.token) return;
     clearTimeout(syncTimer);
-    syncTimer = setTimeout(runSync, delay);
+    syncTimer = setTimeout(() => { syncTimer = null; runSync(); }, delay);
   }
+  // Updates only the status text, so a sync never disturbs what you're typing.
   function setSync(state, message = "") {
     sync.state = state; sync.message = message;
     if (state === "idle") sync.at = new Date();
-    renderHeader();
-    if (view === "settings" || view === "more") renderMain();
+    const badge = $("sync-badge"), status = $("s-status");
+    if (badge) badge.innerHTML = syncBadge();
+    if (status) status.innerHTML = syncStatusHTML();
+    if (view === "more") renderMain();
+  }
+  // Shows changes from the Mac without losing a half-typed capture or an open edit.
+  function applyRemote() {
+    const input = document.activeElement;
+    const capture = $("capture-input"), value = capture ? capture.value : "";
+    const focused = capture && input === capture;
+    renderHeader(); renderMain(); renderTabs();
+    if (editing && !$("sheet").contains(input)) renderSheet();
+    const again = $("capture-input");
+    if (again && value) again.value = value;
+    if (again && focused) again.focus();
   }
 
   async function runSync() {
     if (!cfg.repo || !cfg.token || !navigator.onLine) return;
     if (syncing) { syncAgain = true; return; }
     syncing = true;
-    setSync("syncing");
+    // Only show "syncing…" until the first success, so quiet checks don't flicker.
+    if (sync.state !== "idle") setSync("syncing");
     const url = `https://api.github.com/repos/${cfg.repo.trim()}/contents/data.json`;
     const headers = { Authorization: `Bearer ${cfg.token.trim()}`, Accept: "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28" };
     const problem = code => code === 401 ? "GitHub rejected the token."
@@ -291,22 +311,28 @@
       : `GitHub returned an error (${code}).`;
     try {
       for (let attempt = 0; attempt < 3; attempt++) {
-        const res = await fetch(url, { headers, cache: "no-store" });
+        const get = remoteCache ? { ...headers, "If-None-Match": remoteCache.etag } : headers;
+        const res = await fetch(url, { headers: get, cache: "no-store" });
         let remote = null, sha;
-        if (res.ok) {
+        if (res.status === 304 && remoteCache) {
+          ({ remote, sha } = remoteCache);
+        } else if (res.ok) {
           const file = await res.json();
           sha = file.sha;
           remote = JSON.parse(S.fromBase64(file.content));
+          const etag = res.headers.get("ETag");
+          remoteCache = etag ? { etag, remote, sha } : null;
         } else if (res.status !== 404) {
           throw new Error(problem(res.status));
         }
         const merged = remote ? S.merge(data, remote) : data;
-        if (S.canonical(merged) !== S.canonical(data)) { data = merged; persist(); render(); }
+        if (S.canonical(merged) !== S.canonical(data)) { data = merged; persist(); applyRemote(); }
         if (!remote || S.canonical(merged) !== S.canonical(remote)) {
           const put = await fetch(url, {
             method: "PUT", headers,
             body: JSON.stringify({ message: "Sync from phone", content: S.toBase64(S.pretty(merged) + "\n"), sha }),
           });
+          remoteCache = null;
           if (put.status === 409 || put.status === 422) continue; // someone else wrote first; merge again
           if (!put.ok) throw new Error(problem(put.status));
         }
@@ -379,6 +405,7 @@
     } else if (el.id === "s-save") {
       cfg = { repo: $("s-repo").value.trim(), token: $("s-token").value.trim() };
       localStorage.setItem(SYNC_KEY, JSON.stringify(cfg));
+      remoteCache = null;
       sync.state = cfg.repo && cfg.token ? "idle" : "off";
       runSync();
     } else if (el.id === "s-off") {
@@ -396,7 +423,7 @@
     if (!editing) return;
     const fields = { "f-title": "title", "f-notes": "notes", "f-waiting": "waitingOn" };
     const key = fields[e.target.id];
-    if (key) { S.update(data, editing, t => { t[key] = e.target.value; }); persist(); scheduleSync(2500); }
+    if (key) { S.update(data, editing, t => { t[key] = e.target.value; }); persist(); scheduleSync(1500); }
   });
   document.addEventListener("change", e => {
     if (!editing) return;
@@ -407,10 +434,13 @@
     save();
   });
 
-  // Sync when the app opens or comes back to the foreground, and every minute while open.
+  // Sync when the app opens or comes back to the foreground, and check for changes every few seconds while open.
   document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") scheduleSync(200); });
   window.addEventListener("online", () => scheduleSync(200));
-  setInterval(() => { if (document.visibilityState === "visible") scheduleSync(0); }, 60000);
+  setInterval(() => {
+    // Leave a pending upload of local changes to run on its own schedule.
+    if (document.visibilityState === "visible" && navigator.onLine && !syncTimer) runSync();
+  }, 3000);
   window.addEventListener("hashchange", () => { const v = location.hash.slice(1); if (v && v !== view) go(v); });
 
   if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});

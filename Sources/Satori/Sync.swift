@@ -106,8 +106,8 @@ final class SyncService {
 
     var status: Status = .off
     var enabled: Bool { didSet { defaults.set(enabled, forKey: "syncEnabled"); restart() } }
-    var repo: String { didSet { defaults.set(repo, forKey: "syncRepo") } }
-    var token: String { didSet { Keychain.write(token) } }
+    var repo: String { didSet { defaults.set(repo, forKey: "syncRepo"); remoteCache = nil } }
+    var token: String { didSet { Keychain.write(token); remoteCache = nil } }
 
     @ObservationIgnored weak var store: Store?
     @ObservationIgnored private let defaults = UserDefaults.standard
@@ -115,6 +115,9 @@ final class SyncService {
     @ObservationIgnored private var pending: DispatchWorkItem?
     @ObservationIgnored private var running = false
     @ObservationIgnored private var again = false
+    /// The last copy fetched from GitHub. Checking it with its ETag is free when nothing changed,
+    /// which is what makes polling every few seconds affordable.
+    @ObservationIgnored private var remoteCache: (etag: String, data: AppData, sha: String)?
 
     private var baseMeta: SyncMeta? {
         get { defaults.data(forKey: "syncBaseMeta").flatMap { try? Store.decoder.decode(SyncMeta.self, from: $0) } }
@@ -139,18 +142,28 @@ final class SyncService {
         timer?.invalidate()
         timer = nil
         guard isConfigured else { status = .off; return }
-        timer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
-            MainActor.assumeIsolated { self?.schedule(after: 0) }
+        // Check for changes from the phone every few seconds. Unchanged checks cost nothing.
+        timer = Timer.scheduledTimer(withTimeInterval: 3, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated { self?.poll() }
         }
         schedule(after: 0.5)
     }
 
+    private func poll() {
+        // Leave a pending upload of local changes to run on its own schedule.
+        guard pending == nil || pending!.isCancelled else { return }
+        Task { await syncNow() }
+    }
+
     /// Syncs shortly after local changes settle.
-    func schedule(after delay: TimeInterval = 3) {
+    func schedule(after delay: TimeInterval = 1) {
         guard isConfigured else { return }
         pending?.cancel()
         let work = DispatchWorkItem { [weak self] in
-            Task { @MainActor in await self?.syncNow() }
+            Task { @MainActor in
+                self?.pending = nil
+                await self?.syncNow()
+            }
         }
         pending = work
         DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: work)
@@ -160,7 +173,8 @@ final class SyncService {
         guard isConfigured, let store else { return }
         if running { again = true; return }
         running = true
-        status = .syncing
+        // Only show "syncing…" until the first success, so quiet checks don't flicker.
+        if case .synced = status {} else { status = .syncing }
         defer {
             running = false
             if again { again = false; schedule(after: 1) }
@@ -175,7 +189,9 @@ final class SyncService {
                 if remote == nil || canonical(merged) != canonical(remote!) {
                     do {
                         try await push(merged, sha: sha)
+                        remoteCache = nil
                     } catch SyncError.conflict {
+                        remoteCache = nil
                         continue // someone else wrote first; fetch and merge again
                     }
                 }
@@ -217,8 +233,13 @@ final class SyncService {
     }
 
     private func fetch() async throws -> (AppData?, String?) {
-        let (data, response) = try await URLSession.shared.data(for: request("GET"))
-        let code = (response as? HTTPURLResponse)?.statusCode ?? 0
+        var get = request("GET")
+        if let cached = remoteCache { get.setValue(cached.etag, forHTTPHeaderField: "If-None-Match") }
+        let (data, response) = try await URLSession.shared.data(for: get)
+        let http = response as? HTTPURLResponse
+        let code = http?.statusCode ?? 0
+        if code == 304, let cached = remoteCache { return (cached.data, cached.sha) }
+        remoteCache = nil
         if code == 404 { return (nil, nil) } // first sync: nothing there yet
         try check(code)
         struct File: Decodable { let sha: String; let content: String }
@@ -227,7 +248,9 @@ final class SyncService {
             throw SyncError.message("Couldn't read data.json from GitHub.")
         }
         do {
-            return (try Store.decoder.decode(AppData.self, from: raw), file.sha)
+            let decoded = try Store.decoder.decode(AppData.self, from: raw)
+            if let etag = http?.value(forHTTPHeaderField: "ETag") { remoteCache = (etag, decoded, file.sha) }
+            return (decoded, file.sha)
         } catch {
             throw SyncError.message("data.json on GitHub isn't valid Satori data.")
         }

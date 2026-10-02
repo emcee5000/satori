@@ -6,6 +6,18 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-10-02
+
+### Changed
+
+- **Near real-time sync.** Changes now reach the other device within a few seconds instead of up to a minute. Both
+  apps check for changes every 3 seconds while open, using ETags so that unchanged checks don't count against the
+  GitHub API rate limit, and upload about a second after an edit.
+
+### Fixed
+
+- On the phone, a sync no longer clears a half-typed capture or an edit in progress.
+
 ## [1.1.0] - 2026-10-02
 
 ### Added
@@ -49,7 +61,8 @@ The first public release.
 - Ghostty-inspired terminal theme and a glowing ensō icon.
 - Local JSON storage with tolerant decoding and protection against overwriting unreadable files.
 
-[Unreleased]: https://github.com/emcee5000/satori/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/emcee5000/satori/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/emcee5000/satori/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/emcee5000/satori/compare/v1.0.1...v1.1.0
 [1.0.1]: https://github.com/emcee5000/satori/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/emcee5000/satori/releases/tag/v1.0.0

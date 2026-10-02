@@ -185,7 +185,9 @@ Satori syncs through a **private GitHub repository you own**. There's no Satori 
 3. **On your Mac:** Satori → **Settings (⌘,) → Sync**. Turn it on and enter the repo (`you/satori-data`) and the token.
 4. **On your phone:** **More → Sync & Settings**. Enter the same repo and token, then tap **Save & sync**.
 
-Both apps sync when they open, every minute while open, and a few seconds after a change.
+Changes show up on the other device within a few seconds. Each app uploads about a second after you make a
+change and checks for changes every 3 seconds while it's open. Checks that find nothing new are free, so this doesn't
+use up your GitHub API allowance.
 
 **How merging works:** each to-do and project keeps whichever copy was edited most recently, and anything deleted
 on either device stays deleted. Every sync is a commit to your repo, so you can always look back or restore.
