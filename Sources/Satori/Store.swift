@@ -435,6 +435,12 @@ final class Store {
         updateProject(id) { $0.completedAt = nil }
     }
 
+    /// ⌘K / ⇧⌘K on a project: complete it, or reopen it if it's already done.
+    func toggleProjectComplete(_ id: UUID) {
+        guard let p = project(id) else { return }
+        p.completedAt == nil ? requestCompleteProject(id) : reopenProject(id)
+    }
+
     /// Opens a project with the cursor in its new to-do field.
     func addNextAction(to id: UUID) {
         selection = .project(id)

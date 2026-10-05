@@ -227,6 +227,7 @@ struct ProjectsOverview: View {
                 if let selection { store.go(.project(selection)) }
                 return .handled
             }
+            .focusedSceneValue(\.selectedProjectID, selection.flatMap { store.project($0)?.id })
         }
         .onChange(of: store.focusRequest) { consumeFocusRequest() }
         .onAppear { consumeFocusRequest() }

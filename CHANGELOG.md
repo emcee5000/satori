@@ -6,6 +6,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [1.4.1] - 2026-10-04
+
+### Fixed
+
+- Projects can be completed from the keyboard in the **Projects** list: select one and press **⌘K** (or **⇧⌘K**).
+  Pressing it again on a completed project reopens it. Previously the only way there was the right-click menu.
+
 ## [1.4.0] - 2026-10-04
 
 ### Added
@@ -119,7 +126,8 @@ The first public release.
 - Ghostty-inspired terminal theme and a glowing ensō icon.
 - Local JSON storage with tolerant decoding and protection against overwriting unreadable files.
 
-[Unreleased]: https://github.com/emcee5000/satori/compare/v1.4.0...HEAD
+[Unreleased]: https://github.com/emcee5000/satori/compare/v1.4.1...HEAD
+[1.4.1]: https://github.com/emcee5000/satori/compare/v1.4.0...v1.4.1
 [1.4.0]: https://github.com/emcee5000/satori/compare/v1.3.3...v1.4.0
 [1.3.3]: https://github.com/emcee5000/satori/compare/v1.3.2...v1.3.3
 [1.3.2]: https://github.com/emcee5000/satori/compare/v1.3.1...v1.3.2

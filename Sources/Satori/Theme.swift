@@ -57,7 +57,7 @@ struct StatusLine: View {
             case .review:
                 return [("↑↓", "move"), ("space", "check"), ("↩", "open"), ("⌘↩", "finish")]
             case .projects:
-                return [("↑↓", "move"), ("↩", "open project"), ("←", "sidebar")]
+                return [("↑↓", "move"), ("↩", "open project"), ("⌘K", "complete"), ("←", "sidebar")]
             default:
                 return [("space", "new"), ("↩", "edit"), ("⌘K", "done"),
                         ("⌘I T N D W S R", "move"), ("⌘P", "project"), ("⌫", "trash")]

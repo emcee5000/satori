@@ -52,11 +52,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 // MARK: - Menu commands
 
 struct SelectedTaskKey: FocusedValueKey { typealias Value = UUID }
+struct SelectedProjectKey: FocusedValueKey { typealias Value = UUID }
 
 extension FocusedValues {
     var selectedTaskID: UUID? {
         get { self[SelectedTaskKey.self] }
         set { self[SelectedTaskKey.self] = newValue }
+    }
+
+    /// The project selected in the Projects list.
+    var selectedProjectID: UUID? {
+        get { self[SelectedProjectKey.self] }
+        set { self[SelectedProjectKey.self] = newValue }
     }
 }
 
@@ -75,6 +82,7 @@ let listShortcuts: [(destination: Destination, move: Character, go: Character)] 
 struct SatoriCommands: Commands {
     let store: Store
     @FocusedValue(\.selectedTaskID) private var selected
+    @FocusedValue(\.selectedProjectID) private var selectedProject
 
     var body: some Commands {
         CommandGroup(replacing: .newItem) {
@@ -127,12 +135,18 @@ struct SatoriCommands: Commands {
         }
 
         CommandMenu("To-Do") {
-            Button("Complete") { if let selected { store.toggleComplete(selected) } }
-                .keyboardShortcut("k")
-                .disabled(selected == nil)
-            Button("Complete Project") { if let id = currentProject { store.requestCompleteProject(id) } }
-                .keyboardShortcut("k", modifiers: [.command, .shift])
-                .disabled(currentProject.flatMap(store.project)?.isActive != true)
+            // In the Projects list, ⌘K completes (or reopens) the selected project.
+            Button("Complete") {
+                if let selected { store.toggleComplete(selected) }
+                else if let selectedProject { store.toggleProjectComplete(selectedProject) }
+            }
+            .keyboardShortcut("k")
+            .disabled(selected == nil && selectedProject == nil)
+            Button(currentProject.flatMap(store.project)?.completedAt == nil ? "Complete Project" : "Reopen Project") {
+                if let id = currentProject { store.toggleProjectComplete(id) }
+            }
+            .keyboardShortcut("k", modifiers: [.command, .shift])
+            .disabled(currentProject.flatMap(store.project).map { $0.trashedAt == nil } != true)
             Divider()
             ForEach(listShortcuts, id: \.move) { item in
                 Button(moveTitle(item.destination)) {
@@ -173,8 +187,9 @@ struct SatoriCommands: Commands {
         }
     }
 
-    /// The project being viewed, for project commands.
+    /// The project selected in the Projects list, or the one being viewed.
     private var currentProject: UUID? {
+        if let selectedProject { return selectedProject }
         if case .project(let id) = store.selection { return id }
         return nil
     }

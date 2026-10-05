@@ -199,7 +199,7 @@ Plain <kbd>⌘</kbd> + letter **moves the selected to-do**; <kbd>⌥⌘</kbd> + 
 | ⇧⌘N / ⌥⇧⌘N | New to-do / new project |
 | ⇧⌘I | Process Inbox |
 | ⌘K | Complete the selected to-do |
-| ⇧⌘K | Complete the project you're viewing |
+| ⇧⌘K | Complete or reopen the project you're viewing or have selected (⌘K also works in the Projects list) |
 | ⌫ | Move to Trash |
 | ⌘Z / ⇧⌘Z | Undo / redo |
 | ⌘F | Find a to-do or project |

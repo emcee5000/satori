@@ -69,4 +69,16 @@ final class ProjectTests: XCTestCase {
         store.toggleComplete(ids[0])
         XCTAssertNil(store.finishedProjectID, "the next occurrence is still open")
     }
+
+    func testKeyboardToggleCompletesThenReopens() {
+        let store = makeStore()
+        let pid = store.addProject("Plan garden")
+        store.toggleProjectComplete(pid)
+        XCTAssertNotNil(store.project(pid)?.completedAt)
+        store.toggleProjectComplete(pid)
+        XCTAssertNil(store.project(pid)?.completedAt)
+        _ = store.addTask("Buy seeds", to: .project(pid))
+        store.toggleProjectComplete(pid)
+        XCTAssertEqual(store.confirmCompleteProjectID, pid, "still asks when there are open to-dos")
+    }
 }
