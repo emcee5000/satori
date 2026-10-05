@@ -93,3 +93,29 @@ test("reads setup links made by the Mac", () => {
   const noRepo = Buffer.from(JSON.stringify({ repo: "nope", token: "x" })).toString("base64url");
   assert.equal(S.parseSetupLink("#connect=" + noRepo), null);
 });
+
+test("completing a project completes its open to-dos; reopening leaves them done", () => {
+  const d = data();
+  const p = S.addProject(d, "Kitchen shelves");
+  S.addTask(d, "Measure the wall", "project:" + p.id);
+  S.addTask(d, "Buy brackets", "project:" + p.id);
+  S.completeProject(d, p.id);
+  assert.ok(p.completedAt);
+  assert.ok(d.tasks.every(t => t.completedAt));
+  S.reopenProject(d, p.id);
+  assert.equal(p.completedAt, undefined);
+  assert.ok(d.tasks.every(t => t.completedAt));
+});
+
+test("finishing a project's last to-do is noticed", () => {
+  const d = data();
+  const p = S.addProject(d, "Kitchen shelves");
+  const a = S.addTask(d, "Measure the wall", "project:" + p.id);
+  const b = S.addTask(d, "Buy brackets", "project:" + p.id);
+  S.complete(d, a.id);
+  assert.equal(S.finishedProject(d, a), null, "one to-do is still open");
+  S.complete(d, b.id);
+  assert.equal(S.finishedProject(d, b), p);
+  S.completeProject(d, p.id);
+  assert.equal(S.finishedProject(d, b), null, "already complete");
+});

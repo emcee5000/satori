@@ -6,6 +6,20 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-10-04
+
+### Added
+
+- **Complete Project** button in every project's header, and **⇧⌘K** to complete the project you're viewing.
+- When you complete a project's last to-do, Satori asks whether the project is done or what its next action is.
+- On the phone: complete or reopen a project from its page, see recently completed projects, and get the same
+  "no more to-dos" prompt.
+
+### Changed
+
+- Completing a project that still has open to-dos asks first, since they'll be marked done too. It's one step to
+  undo with ⌘Z.
+
 ## [1.3.3] - 2026-10-02
 
 ### Changed
@@ -105,7 +119,8 @@ The first public release.
 - Ghostty-inspired terminal theme and a glowing ensō icon.
 - Local JSON storage with tolerant decoding and protection against overwriting unreadable files.
 
-[Unreleased]: https://github.com/emcee5000/satori/compare/v1.3.3...HEAD
+[Unreleased]: https://github.com/emcee5000/satori/compare/v1.4.0...HEAD
+[1.4.0]: https://github.com/emcee5000/satori/compare/v1.3.3...v1.4.0
 [1.3.3]: https://github.com/emcee5000/satori/compare/v1.3.2...v1.3.3
 [1.3.2]: https://github.com/emcee5000/satori/compare/v1.3.1...v1.3.2
 [1.3.1]: https://github.com/emcee5000/satori/compare/v1.3.0...v1.3.1

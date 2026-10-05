@@ -21,6 +21,10 @@ final class Store {
     var showInspector = false
     var showShortcuts = false
     var showSearch = false
+    /// A project waiting for "complete it and its open to-dos?" confirmation.
+    var confirmCompleteProjectID: UUID?
+    /// A project whose last open to-do was just completed: done, or what's next?
+    var finishedProjectID: UUID?
     /// A to-do or project to select once its list appears (e.g. after a search).
     var selectRequest: UUID?
     /// The pane that currently has keyboard focus; drives the status line.
@@ -265,6 +269,7 @@ final class Store {
 
     func toggleComplete(_ id: UUID) {
         guard let task = task(id) else { return }
+        defer { if task.completedAt == nil { checkProjectFinished(after: task) } }
         if task.completedAt == nil, let next = task.nextOccurrence() {
             // Complete it and add the next one as a single change, so one undo reverts both.
             var copy = data
@@ -399,13 +404,48 @@ final class Store {
         return Double(all.filter(\.isDone).count) / Double(all.count)
     }
 
+    /// To-dos in a project that aren't done or trashed.
+    func openTasks(in id: UUID) -> [TaskItem] {
+        data.tasks.filter { $0.projectID == id && $0.isActive }
+    }
+
+    /// Completes a project, asking first if it still has open to-dos.
+    func requestCompleteProject(_ id: UUID) {
+        guard let p = project(id), p.isActive else { return }
+        if openTasks(in: id).isEmpty { completeProject(id) } else { confirmCompleteProjectID = id }
+    }
+
+    /// Marks a project and its open to-dos done, as one undoable change.
     func completeProject(_ id: UUID) {
         let now = Date()
-        for i in data.tasks.indices where data.tasks[i].projectID == id && data.tasks[i].isActive {
-            data.tasks[i].completedAt = now
-            data.tasks[i].updatedAt = now
+        var copy = data
+        for i in copy.tasks.indices where copy.tasks[i].projectID == id && copy.tasks[i].isActive {
+            copy.tasks[i].completedAt = now
+            copy.tasks[i].updatedAt = now
         }
-        updateProject(id) { $0.completedAt = now }
+        if let i = copy.projects.firstIndex(where: { $0.id == id }) {
+            copy.projects[i].completedAt = now
+            copy.projects[i].updatedAt = now
+        }
+        data = copy
+        if selection == .project(id) { go(.projects) }
+    }
+
+    func reopenProject(_ id: UUID) {
+        updateProject(id) { $0.completedAt = nil }
+    }
+
+    /// Opens a project with the cursor in its new to-do field.
+    func addNextAction(to id: UUID) {
+        selection = .project(id)
+        DispatchQueue.main.async { self.focusRequest = .newTask }
+    }
+
+    /// GTD: when a project runs out of actions, it's either done or needs its next one.
+    private func checkProjectFinished(after task: TaskItem) {
+        guard let pid = task.projectID, let p = project(pid), p.isActive, self.task(task.id)?.isDone == true,
+              openTasks(in: pid).isEmpty else { return }
+        finishedProjectID = pid
     }
 
     func trashProject(_ id: UUID) {

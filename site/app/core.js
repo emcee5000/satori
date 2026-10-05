@@ -188,6 +188,30 @@ const Satori = (() => {
     return next;
   }
 
+  // ---- Projects ----
+
+  /** To-dos in a project that aren't done or trashed. */
+  const openTasks = (data, id) => data.tasks.filter(t => t.projectID === id && isActive(t));
+
+  /** Marks a project and its open to-dos done (same as Store.completeProject on the Mac). */
+  function completeProject(data, id, now = new Date()) {
+    const stamp = iso(now);
+    for (const t of openTasks(data, id)) { t.completedAt = stamp; t.updatedAt = stamp; }
+    updateProject(data, id, p => { p.completedAt = stamp; });
+  }
+
+  function reopenProject(data, id) {
+    updateProject(data, id, p => { p.completedAt = null; });
+  }
+
+  /** The project that has just run out of open to-dos because `task` was completed, if any. */
+  function finishedProject(data, task) {
+    if (!task || !task.projectID || !task.completedAt) return null;
+    const p = project(data, task.projectID);
+    if (!p || p.completedAt || p.trashedAt) return null;
+    return openTasks(data, p.id).length ? null : p;
+  }
+
   function emptyTrash(data) {
     const now = iso();
     data.deleted = data.deleted || {};
@@ -310,6 +334,7 @@ const Satori = (() => {
     project, list, activeProjects, nextActionCount, isStalled, parseContext, addTask, update,
     updateProject, send, addProject, emptyTrash, merge, canonical, pretty, toBase64, fromBase64, friendly,
     REPEAT_RULES, nextDate, nextOccurrence, complete, summary, parseSetupLink,
+    openTasks, completeProject, reopenProject, finishedProject,
   };
 })();
 

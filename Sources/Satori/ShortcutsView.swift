@@ -19,6 +19,7 @@ struct ShortcutsView: View {
             ("↩ (in title)", "Finish editing, back to the list"),
             ("esc", "Back to the list / close the inspector"),
             ("⌘K", "Complete"),
+            ("⇧⌘K", "Complete the project you're viewing"),
             ("⌫", "Move to Trash"),
             ("⌘Z  ⇧⌘Z", "Undo / redo"),
         ]),

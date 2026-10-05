@@ -130,6 +130,9 @@ struct SatoriCommands: Commands {
             Button("Complete") { if let selected { store.toggleComplete(selected) } }
                 .keyboardShortcut("k")
                 .disabled(selected == nil)
+            Button("Complete Project") { if let id = currentProject { store.requestCompleteProject(id) } }
+                .keyboardShortcut("k", modifiers: [.command, .shift])
+                .disabled(currentProject.flatMap(store.project)?.isActive != true)
             Divider()
             ForEach(listShortcuts, id: \.move) { item in
                 Button(moveTitle(item.destination)) {
@@ -168,6 +171,12 @@ struct SatoriCommands: Commands {
             Button("Trash") { store.go(.trash) }
                 .keyboardShortcut(.delete, modifiers: [.command, .shift])
         }
+    }
+
+    /// The project being viewed, for project commands.
+    private var currentProject: UUID? {
+        if case .project(let id) = store.selection { return id }
+        return nil
     }
 
     /// Sends undo/redo to the focused text field if it has something to undo.

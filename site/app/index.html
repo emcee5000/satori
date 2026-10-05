@@ -115,6 +115,17 @@
     .btn.primary { background: var(--blue); border-color: var(--blue); color: #10141a; }
     .btn.danger { color: var(--red); }
 
+    /* "Project has no more to-dos" prompt, above the tab bar */
+    .notice {
+      position: fixed; left: 12px; right: 12px; bottom: calc(var(--bottom) + 72px); z-index: 8;
+      background: var(--raised); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45); font-size: 14px;
+    }
+    .notice p { margin: 0 0 10px; color: var(--text); }
+    .notice .row-btns { display: flex; gap: 8px; }
+    .notice .btn { padding: 9px; font-size: 13.5px; }
+    .project-actions { padding: 20px 6px 0; display: flex; gap: 10px; }
+
     /* Settings */
     .card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 14px; margin: 10px 6px; font-size: 14px; color: var(--dim); }
     .card h3 { margin: 0 0 6px; font-size: 15px; color: var(--text); }
@@ -131,6 +142,7 @@
   <nav class="tabs" id="tabs"></nav>
   <div class="scrim" id="scrim"></div>
   <div class="sheet" id="sheet" role="dialog" aria-modal="true"></div>
+  <div class="notice" id="notice" role="status" hidden></div>
 
   <script src="core.js"></script>
   <script src="app.js"></script>

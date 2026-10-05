@@ -120,8 +120,17 @@ struct ProjectHeader: View {
                     TextField("Project Name", text: p.title)
                         .scaledFont(.title2, weight: .bold)
                         .textFieldStyle(.plain)
+                    if project.completedAt != nil {
+                        Button("Reopen") { store.reopenProject(id) }
+                            .help("Make this project active again")
+                    } else {
+                        Button("[x] Complete") { store.requestCompleteProject(id) }
+                            .help("Complete this project — ⇧⌘K")
+                    }
                     Menu {
-                        Button("Complete Project") { store.completeProject(id); store.go(.projects) }
+                        if project.completedAt == nil {
+                            Button("Complete Project") { store.requestCompleteProject(id) }
+                        }
                         Button(project.isSomeday ? "Make Active" : "Move to Someday/Maybe") {
                             store.updateProject(id) { $0.isSomeday.toggle() }
                         }
@@ -139,7 +148,10 @@ struct ProjectHeader: View {
                     .textFieldStyle(.plain)
                     .scaledFont(.callout)
                     .foregroundStyle(Theme.dim)
-                if project.isSomeday {
+                if let done = project.completedAt {
+                    Text("# completed \(done.friendly.lowercased())")
+                        .scaledFont(.callout).foregroundStyle(Theme.green)
+                } else if project.isSomeday {
                     Text("# incubating in someday/maybe — actions are hidden from next actions")
                         .scaledFont(.callout).foregroundStyle(Theme.sand)
                 } else if store.isStalled(project) {
@@ -199,9 +211,9 @@ struct ProjectsOverview: View {
                 if let id = ids.first, let p = store.project(id) {
                     Button("Open Project") { store.go(.project(id)) }
                     if p.completedAt != nil {
-                        Button("Reopen") { store.updateProject(id) { $0.completedAt = nil } }
+                        Button("Reopen") { store.reopenProject(id) }
                     } else {
-                        Button("Complete Project") { store.completeProject(id) }
+                        Button("Complete Project") { store.requestCompleteProject(id) }
                         Button(p.isSomeday ? "Make Active" : "Move to Someday/Maybe") {
                             store.updateProject(id) { $0.isSomeday.toggle() }
                         }

@@ -152,6 +152,11 @@
         ${S.isStalled(data, p) ? '<span class="warn">! no next action</span>' : `<span class="n">${S.nextActionCount(data, p) || ""}</span>`}</button>`;
       html = active.map(projRow).join("") || empty("No projects", "A project is any outcome that takes more than one step.");
       if (someday.length) html += `<div class="section">── someday/maybe</div>` + someday.map(projRow).join("");
+      const done = data.projects.filter(p => p.completedAt && !p.trashedAt)
+        .sort((a, b) => S.time(b.completedAt) - S.time(a.completedAt)).slice(0, 10);
+      if (done.length) html += `<div class="section">── completed</div>` + done.map(p =>
+        `<button class="nav-row" data-go="project:${p.id}" style="width:100%;text-align:left;color:var(--faint)">
+          <span style="color:var(--green)">[x]</span>${esc(p.title || "Untitled Project")}<span class="n">${S.friendly(p.completedAt)}</span></button>`).join("");
     } else if (view === "settings") {
       html = settingsHTML();
     } else {
@@ -182,6 +187,12 @@
         html = tasks.map(t => row(t)).join("");
       }
       if (view === "trash" && tasks.length) html += `<div style="padding:16px 6px"><button class="btn danger" id="empty-trash" style="width:100%">Empty Trash</button></div>`;
+      if (view.startsWith("project:")) {
+        const p = S.project(data, view.slice(8));
+        if (p && !p.trashedAt) html += `<div class="project-actions">${p.completedAt
+          ? `<button class="btn" data-reopen-project="${p.id}">Reopen project</button>`
+          : `<button class="btn" data-complete-project="${p.id}">[x] Complete project</button>`}</div>`;
+      }
     }
     $("main").innerHTML = html;
   }
@@ -246,6 +257,22 @@
         <button class="btn primary" id="sheet-done">Done</button>
       </div>`;
   }
+
+  // ---- "No more to-dos" prompt ----
+
+  let noticeTimer = null;
+  function showNotice(p) {
+    $("notice").innerHTML = `<p><b>${esc(p.title || "Untitled Project")}</b> has no more to-dos. Is it done, or what's next?</p>
+      <div class="row-btns">
+        <button class="btn primary" data-complete-project="${p.id}">Complete</button>
+        <button class="btn" data-next-action="${p.id}">Add next action</button>
+        <button class="btn" data-dismiss>Not now</button>
+      </div>`;
+    $("notice").hidden = false;
+    clearTimeout(noticeTimer);
+    noticeTimer = setTimeout(hideNotice, 15000);
+  }
+  function hideNotice() { $("notice").hidden = true; clearTimeout(noticeTimer); }
 
   // ---- Settings ----
 
@@ -383,7 +410,7 @@
   });
 
   document.addEventListener("click", e => {
-    const el = e.target.closest("[data-check],[data-open],[data-go],[data-send],[data-ctx],[data-repeat],[data-trash],[data-restore],[data-destroy],button[id],#scrim");
+    const el = e.target.closest("[data-check],[data-open],[data-go],[data-send],[data-ctx],[data-repeat],[data-trash],[data-restore],[data-destroy],[data-complete-project],[data-reopen-project],[data-next-action],[data-dismiss],button[id],#scrim");
     if (!el) return;
     const d = el.dataset;
     if (d.check) {
@@ -393,9 +420,25 @@
       if (t.completedAt) { S.update(data, t.id, x => { x.completedAt = null; }); save(); return; }
       el.textContent = "[x]";
       el.closest(".row")?.classList.add("done");
-      setTimeout(() => { S.complete(data, t.id); if (editing === t.id) closeSheet(); save(); }, 350);
+      setTimeout(() => {
+        S.complete(data, t.id);
+        if (editing === t.id) closeSheet();
+        save();
+        const p = S.finishedProject(data, t);
+        if (p) showNotice(p);
+      }, 350);
     } else if (d.open) {
       openSheet(d.open);
+    } else if (d.completeProject) {
+      const open = S.openTasks(data, d.completeProject).length;
+      if (open && !confirm(`Complete this project? Its ${open} open to-do${open === 1 ? "" : "s"} will be marked done too.`)) return;
+      S.completeProject(data, d.completeProject); hideNotice(); save(); go("projects");
+    } else if (d.reopenProject) {
+      S.reopenProject(data, d.reopenProject); save();
+    } else if (d.nextAction) {
+      hideNotice(); go("project:" + d.nextAction); setTimeout(() => $("capture-input")?.focus(), 50);
+    } else if (d.dismiss !== undefined) {
+      hideNotice();
     } else if (d.go) {
       go(d.go);
     } else if (d.send) {

@@ -42,6 +42,34 @@ struct ContentView: View {
         .sheet(isPresented: $store.showSearch) {
             SearchView().scaledFont(.body)
         }
+        .alert(confirmTitle, isPresented: Binding(
+            get: { store.confirmCompleteProjectID != nil },
+            set: { if !$0 { store.confirmCompleteProjectID = nil } }
+        )) {
+            Button("Complete Project") {
+                if let id = store.confirmCompleteProjectID { store.completeProject(id) }
+            }
+            .keyboardShortcut(.defaultAction)
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            let n = store.confirmCompleteProjectID.map { store.openTasks(in: $0).count } ?? 0
+            Text("Its \(n) open to-do\(n == 1 ? "" : "s") will be marked done too. You can undo this with ⌘Z.")
+        }
+        .alert(finishedTitle, isPresented: Binding(
+            get: { store.finishedProjectID != nil },
+            set: { if !$0 { store.finishedProjectID = nil } }
+        )) {
+            Button("Complete Project") {
+                if let id = store.finishedProjectID { store.completeProject(id) }
+            }
+            .keyboardShortcut(.defaultAction)
+            Button("Add Next Action") {
+                if let id = store.finishedProjectID { store.addNextAction(to: id) }
+            }
+            Button("Not Now", role: .cancel) {}
+        } message: {
+            Text("Is the project done, or what's the next action?")
+        }
         .alert("New Project", isPresented: $store.showNewProject) {
             TextField("Project name", text: $newProjectName)
             Button("Create") {
@@ -54,6 +82,16 @@ struct ContentView: View {
             Text("A project is any outcome that takes more than one action.")
         }
     }
+}
+
+extension ContentView {
+    private func projectName(_ id: UUID?) -> String {
+        guard let id, let p = store.project(id) else { return "this project" }
+        return p.title.isEmpty ? "Untitled Project" : "“\(p.title)”"
+    }
+
+    var confirmTitle: String { "Complete \(projectName(store.confirmCompleteProjectID))?" }
+    var finishedTitle: String { "\(projectName(store.finishedProjectID)) has no more to-dos" }
 }
 
 struct Sidebar: View {
